@@ -2,68 +2,81 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class AdminService {
-   private readonly dummyUsers = [
+  private readonly dummyUsers = [
     { id: 1, name: 'Alice Johnson', role: 'admin', isActive: true },
     { id: 2, name: 'Bob Smith', role: 'donor', isActive: true },
     { id: 3, name: 'Charlie Brown', role: 'ngo', isActive: false },
-    {id: 4, name: 'Diana Prince', role: 'volunteer', isActive: true }
+    { id: 4, name: 'Diana Prince', role: 'volunteer', isActive: true },
   ];
 
   private readonly dummyOrganizations = [
-      { id: 101, name: 'Acme Corp', status: 'verified' },
-      { id: 102, name: 'Stark Industries', status: 'pending' },
+    { id: 101, name: 'Acme Corp', status: 'verified' },
+    { id: 102, name: 'Stark Industries', status: 'pending' },
   ];
 
-  getUsers(role?: string, isActive?: string) {
+  getUsers(role?: string, isActive?: string): object {
     let users = [...this.dummyUsers];
 
-    if(role) {
-      users = users.filter((user) => user.role.toLowerCase() === role.toLowerCase());
+    if (role) {
+      users = users.filter(
+        (user) => user.role.toLowerCase() === role.toLowerCase(),
+      );
     }
 
     if (isActive) {
-      const isTrue = (isActive.toLowerCase() === "true");
+      const isTrue = isActive.toLowerCase() === 'true';
       users = users.filter((user) => user.isActive === isTrue);
     }
-    
+
     return {
-      message: users.length > 0 ? 'Successfully retrieved dummy users list' : 'No dummy users found',
+      message:
+        users.length > 0
+          ? 'Successfully retrieved dummy users list'
+          : 'No dummy users found',
       count: users.length,
-      data: users
-    }
+      data: users,
+    };
   }
 
-  getUserById(id: number) {
+  getUserById(id: number): object {
+    const user = this.dummyUsers.find((user) => user.id == id) || null;
 
-    const user = this.dummyUsers.find((user) => user.id === id) || null;
-    
     return {
-      message: user ? `Successfully retrieved dummy user with ID: ${user.id}` : `No user found with ID: ${id}`,
-      data: user
-    }  
-   }
+      message: user
+        ? `Successfully retrieved dummy user with ID: ${user.id}`
+        : `No user found with ID: ${id}`,
+      data: user,
+    };
+  }
 
-   getOrganizations(status?: string) {
-      let organizations = [...this.dummyOrganizations];
+  getOrganizations(status?: string): object {
+    let organizations = [...this.dummyOrganizations];
 
-      if (status) {
-         organizations = organizations.filter((org) => org.status.toLowerCase() === status.toLowerCase());
-      }
-    
+    if (status) {
+      organizations = organizations.filter(
+        (org) => org.status.toLowerCase() === status.toLowerCase(),
+      );
+    }
+
     return {
-      message: organizations.length > 0 ? 'Successfully retrieved dummy organizations list' : 'No dummy organizations found',
+      message:
+        organizations.length > 0
+          ? 'Successfully retrieved dummy organizations list'
+          : 'No dummy organizations found',
       count: organizations.length,
-      data: organizations
-    }
+      data: organizations,
+    };
   }
 
-  getOrganizationById(id: number) {
+  getOrganizationById(id: number): object {
+    const organization =
+      this.dummyOrganizations.find((org) => org.id == id) || null;
 
-    const organization = this.dummyOrganizations.find((org) => org.id === id) || null;
-    
     return {
-      message: organization ? `Successfully retrieved dummy organization with ID: ${organization.id}` : `No organization found with ID: ${id}`,
-      data: organization
-    }  
-   }
+      message: organization
+        ? `Successfully retrieved dummy organization with ID: ${organization.id}`
+        : `No organization found with ID: ${id}`,
+      data: organization,
+    };
+  }
 }
