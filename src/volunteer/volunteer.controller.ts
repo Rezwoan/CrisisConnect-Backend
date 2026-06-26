@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Post, Param, Body,
+  Controller, Get, Post, Param, Body,Query,
 } from '@nestjs/common';
 import { VolunteerService } from '../volunteer/volunteer.service';
 
@@ -37,5 +37,13 @@ export class VolunteerController {
   @Get('badges')
   getBadges() {
     return this.volunteerService.getBadges();
+  }
+
+   @Get('search')
+  searchVolunteer(
+    @Query('city') city: string,
+    @Query('skill') skill: string,
+  ) {
+    return this.volunteerService.searchVolunteer(city, skill);
   }
 }

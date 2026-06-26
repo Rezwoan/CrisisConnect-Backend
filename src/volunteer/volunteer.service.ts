@@ -50,4 +50,11 @@ export class VolunteerService {
       },
     ];
   }
+  searchVolunteer(city: string, skill: string) {
+  return {
+    city,
+    skill,
+    message: `Searching volunteers from ${city} with ${skill} skill`,
+  };
+}
 }
