@@ -1,6 +1,10 @@
 import {
   Controller, Get, Post, Param, Body,Query,
 } from '@nestjs/common';
+
+
+import { CreateUserDto } from './create-user.dto';
+
 import { VolunteerService } from '../volunteer/volunteer.service';
 
 @Controller('volunteer')
@@ -8,6 +12,16 @@ export class VolunteerController {
   constructor(
     private readonly volunteerService: VolunteerService,
   ) {}
+
+
+
+   @Post('register')
+  register(@Body() dto: CreateUserDto) {
+    return {
+      message: 'Registration successful',
+      data: dto,
+    };
+  }
 
   // GET /volunteers/profile
   @Get('profile')
