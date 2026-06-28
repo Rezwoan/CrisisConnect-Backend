@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { AdminDto } from './admin.dto';
 
 @Injectable()
 export class AdminService {
@@ -77,6 +78,16 @@ export class AdminService {
         ? `Successfully retrieved dummy organization with ID: ${organization.id}`
         : `No organization found with ID: ${id}`,
       data: organization,
+    };
+  }
+
+  insertAdmin(userData: AdminDto): object {
+    userData.name = userData.name.trim();
+    userData.email = userData.email.trim();
+    userData.nidNumber = userData.nidNumber.trim();
+    return {
+      message: 'Admin inserted successfully',
+      data: userData,
     };
   }
 }
