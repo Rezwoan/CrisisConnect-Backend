@@ -1,10 +1,14 @@
-import {
-  Controller, Get, Post, Param, Body,Query,
+import { 
+  Controller, 
+  Get, 
+  Post, 
+  Param, 
+  Body, 
+  Query,
+  UsePipes,
+  ValidationPipe
 } from '@nestjs/common';
-
-
 import { CreateUserDto } from './create-user.dto';
-
 import { VolunteerService } from '../volunteer/volunteer.service';
 
 @Controller('volunteer')
@@ -13,9 +17,8 @@ export class VolunteerController {
     private readonly volunteerService: VolunteerService,
   ) {}
 
-
-
-   @Post('register')
+  @Post('register')
+  @UsePipes(new ValidationPipe({ transform: true })) // Add this
   register(@Body() dto: CreateUserDto) {
     return {
       message: 'Registration successful',
@@ -23,37 +26,30 @@ export class VolunteerController {
     };
   }
 
-  // GET /volunteers/profile
   @Get('profile')
   getProfile() {
     return this.volunteerService.getProfile();
   }
 
-  // POST /volunteers/apply/1
   @Post('apply/:taskId')
   applyTask(
     @Param('taskId') taskId: string,
     @Body() body: any,
   ) {
-    return this.volunteerService.applyTask(
-      Number(taskId),
-      body,
-    );
+    return this.volunteerService.applyTask(Number(taskId), body);
   }
 
-  // GET /volunteers/assignments
   @Get('assignments')
   getAssignments() {
     return this.volunteerService.getAssignments();
   }
 
-  // GET /volunteers/badges
   @Get('badges')
   getBadges() {
     return this.volunteerService.getBadges();
   }
 
-   @Get('search')
+  @Get('search')
   searchVolunteer(
     @Query('city') city: string,
     @Query('skill') skill: string,
