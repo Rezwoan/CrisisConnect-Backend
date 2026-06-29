@@ -1,9 +1,19 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import {
+    Controller,
+    Get,
+    Post,
+    Param,
+    Query,
+    Body,
+    UsePipes,
+    ValidationPipe,
+} from '@nestjs/common';
 import { NgoService } from './ngo.service';
+import { NgoDto } from './ngo.dto';
 
 @Controller('ngo')
 export class NgoController {
-    constructor(private readonly ngoService: NgoService) {}
+    constructor(private readonly ngoService: NgoService) { }
 
     @Get('crises')
     getAllCrises(
@@ -29,5 +39,11 @@ export class NgoController {
     @Get('volunteers')
     getVolunteers(@Query('crisisId') crisisId?: string): object {
         return this.ngoService.getVolunteers(crisisId);
+    }
+
+    @Post('insertngo')
+    @UsePipes(new ValidationPipe())
+    insertNgo(@Body() userData: NgoDto): object {
+        return this.ngoService.insertNgo(userData);
     }
 }
