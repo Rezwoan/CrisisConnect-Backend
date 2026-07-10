@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { DonorDTO } from './donor.dto';
 
 @Injectable()
 export class DonorService {
@@ -48,6 +49,10 @@ export class DonorService {
         status: "received"
       }
     }
+  }
+
+  createDonor(donorData : DonorDTO) : DonorDTO{
+    return donorData;
   }
 }
 

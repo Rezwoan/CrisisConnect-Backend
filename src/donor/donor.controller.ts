@@ -1,5 +1,9 @@
-import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { DonorService } from './donor.service';
+import { DonorDTO } from './donor.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { MulterError, diskStorage } from "multer";
+
 
 @Controller('donor')
 export class DonorController {
@@ -34,10 +38,36 @@ export class DonorController {
   }
 
   @Get('test')
-test() {
+  test() {
   return {
     message: 'Test route works',
   };
 }
+
+  @Post("createDonor")
+  createDonor(@Body() donorData : DonorDTO) : DonorDTO{
+    return  this.donorService.createDonor(donorData);
+  }
+
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file',
+    { fileFilter: (req, file, cb) => {
+      if (file.originalname.match(/^.*\.(pdf|txt)$/))
+cb(null, true);
+else {
+cb(new MulterError('LIMIT_UNEXPECTED_FILE', 'image'), false);
+}
+},
+limits: { fileSize: 30000 },
+storage:diskStorage({
+destination: './uploads',
+filename: function (req, file, cb) {
+cb(null,Date.now()+file.originalname)
+},
+})
+}))
+  uploadFile(@UploadedFile() file: any){
+    console.log(file);
+  }
 
 }
