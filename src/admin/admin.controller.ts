@@ -1,45 +1,86 @@
 import {
   Controller,
   Get,
-  Post,
   Param,
+  Query,
+  Post,
   Body,
+  UseInterceptors,
+  UsePipes,
+  ValidationPipe,
+  UploadedFile,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
+  Res,
 } from '@nestjs/common';
-import { VolunteerService } from '../volunteer/volunteer.service';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage, MulterError } from 'multer';
+import { AdminService } from './admin.service';
+import { AdminDto } from './admin.dto';
 
-@Controller('volunteers')
-export class VolunteerController {
-  constructor(
-    private readonly volunteerService: VolunteerService,
-  ) {}
+@Controller('admin')
+export class AdminController {
+  constructor(private readonly adminService: AdminService) {}
 
-  // GET /volunteers/profile
-  @Get('profile')
-  getProfile() {
-    return this.volunteerService.getProfile();
+  @Get('users')
+  getUsers(
+    @Query('role') role?: string,
+    @Query('isActive') isActive?: string,
+  ): object {
+    return this.adminService.getUsers(role, isActive);
   }
 
-  // POST /volunteers/apply/1
-  @Post('apply/:taskId')
-  applyTask(
-    @Param('taskId') taskId: string,
-    @Body() body: any,
+  @Get('users/:id')
+  getUserById(@Param('id') id: number): object {
+    return this.adminService.getUserById(id);
+  }
+
+  @Get('organizations')
+  getOrganizations(@Query('status') status?: string): object {
+    return this.adminService.getOrganizations(status);
+  }
+
+  @Get('organizations/:id')
+  getOrganizationById(@Param('id') id: number): object {
+    return this.adminService.getOrganizationById(id);
+  }
+
+  @Post('/insertadmin')
+  @UsePipes(new ValidationPipe())
+  @UseInterceptors(
+    FileInterceptor('fileName', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: function (req, file, cb) {
+          cb(null, Date.now() + file.originalname);
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (file.originalname.match(/^.*\.(jpg|jpeg|png|webp)$/)) {
+          return cb(null, true);
+        } else {
+          cb(new MulterError('LIMIT_UNEXPECTED_FILE', 'image'), false);
+        }
+      },
+    }),
+  )
+  insertAdmin(
+    @Body() userData: AdminDto,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [new MaxFileSizeValidator({ maxSize: 2000000 })],
+      }),
+    )
+    file: Express.Multer.File,
   ) {
-    return this.volunteerService.applyTask(
-      Number(taskId),
-      body,
-    );
+    userData.fileName = file.filename;
+    console.log(userData);
+    return this.adminService.insertAdmin(userData);
   }
 
-  // GET /volunteers/assignments
-  @Get('assignments')
-  getAssignments() {
-    return this.volunteerService.getAssignments();
-  }
-
-  // GET /volunteers/badges
-  @Get('badges')
-  getBadges() {
-    return this.volunteerService.getBadges();
+  @Get('/uploadedimage/:fileName')
+  getUploadedImage(@Param('fileName') fileName: string, @Res() res) {
+    res.sendFile(fileName, { root: './uploads' });
   }
 }
