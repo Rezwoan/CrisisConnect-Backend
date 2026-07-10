@@ -4,6 +4,6 @@ import { VolunteerService } from './volunteer.service';
 
 @Module({
   controllers: [VolunteerController],
-  providers: [VolunteerService]
+  providers: [VolunteerService],
 })
 export class VolunteerModule {}

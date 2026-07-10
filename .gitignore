@@ -5,6 +5,11 @@ dist/
 coverage/
 *.tsbuildinfo
 
+# Compiled TS output must never be committed alongside src — build to dist/ only
+src/**/*.js
+src/**/*.js.map
+src/**/*.d.ts
+
 # Logs
 logs/
 *.log
