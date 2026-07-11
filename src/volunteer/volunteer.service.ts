@@ -1,55 +1,55 @@
-import { Injectable } from '@nestjs/common';
-import { ApplyTaskDto, VolunteerDto } from './volunteer.dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Like, Repository } from 'typeorm';
+import { Volunteer } from './volunteer.entity';
+import { CreateVolunteerDto } from './volunteer.dto';
 
 @Injectable()
 export class VolunteerService {
-  private readonly dummyAssignments = [
-    { taskId: 1, title: 'Food Distribution', status: 'IN_PROGRESS' },
-    { taskId: 2, title: 'Medical Camp', status: 'PENDING' },
-  ];
+  constructor(
+    @InjectRepository(Volunteer)
+    private readonly volunteerRepository: Repository<Volunteer>,
+  ) {}
 
-  private readonly dummyBadges = [
-    { name: 'First Deployment', earnedAt: '2026-06-22' },
-    { name: '10 Hours Served', earnedAt: '2026-06-25' },
-  ];
-
-  registerVolunteer(dto: VolunteerDto): object {
-    return {
-      message: 'Volunteer registered successfully',
-      data: dto,
-    };
+  async createVolunteer(dto: CreateVolunteerDto): Promise<Volunteer> {
+    const volunteer = this.volunteerRepository.create({
+      username: dto.username,
+      fullName: dto.fullName,
+    });
+    return this.volunteerRepository.save(volunteer);
   }
 
-  getProfile(): object {
-    return {
-      id: 1,
-      name: 'Nirzor Das',
-      city: 'Dhaka',
-      availability: 'WEEKENDS',
-      skills: ['IT', 'Logistics'],
-    };
+  async findByFullNameContains(substring: string): Promise<Volunteer[]> {
+    return this.volunteerRepository.find({
+      where: { fullName: Like(`%${substring}%`) },
+    });
   }
 
-  applyTask(taskId: number, body: ApplyTaskDto): object {
-    return {
-      message: `Successfully applied for task ${taskId}`,
-      applicationMessage: body.message,
-    };
+  async findByUsername(username: string): Promise<Volunteer> {
+    const volunteer = await this.volunteerRepository.findOne({
+      where: { username: username },
+    });
+
+    if (!volunteer) {
+      throw new NotFoundException(
+        `No volunteer found with username: ${username}`,
+      );
+    }
+
+    return volunteer;
   }
 
-  getAssignments(): object {
-    return this.dummyAssignments;
-  }
+  async deleteByUsername(username: string): Promise<object> {
+    const result = await this.volunteerRepository.delete({
+      username: username,
+    });
 
-  getBadges(): object {
-    return this.dummyBadges;
-  }
+    if (result.affected === 0) {
+      throw new NotFoundException(
+        `No volunteer found with username: ${username}`,
+      );
+    }
 
-  searchVolunteer(city?: string, skill?: string): object {
-    return {
-      message: `Searching volunteers from ${city} with ${skill} skill`,
-      city,
-      skill,
-    };
+    return { message: `Volunteer ${username} deleted successfully` };
   }
 }
