@@ -1,28 +1,31 @@
-import { IsEmail, IsNotEmpty, IsString, Matches } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsNumber,
+  IsEnum,
+  IsOptional,
+} from 'class-validator';
 
 export class AdminDto {
-  @IsNotEmpty()
-  @IsString()
-  @Matches(/^[a-zA-Z\s]+$/, {
-    message: 'Name should only contain Alphabets',
+  @IsNotEmpty({ message: 'Full name cannot be empty' })
+  @IsString({ message: 'Full name must be a string' })
+  fullName?: string;
+
+  @IsNotEmpty({ message: 'Age is required' })
+  @IsNumber({}, { message: 'Age must be a number' })
+  age?: number;
+
+  @IsOptional()
+  @IsEnum(['active', 'inactive'], {
+    message: 'Status must be active or inactive',
   })
-  name: string;
+  status?: string;
+}
 
-  @IsNotEmpty()
-  @IsEmail(
-    {},
-    {
-      message: 'Email must be a valid email address',
-    },
-  )
-  email: string;
-
-  @IsNotEmpty()
-  @IsString()
-  @Matches(/^\d{10}$|^\d{13}$|^\d{17}$/, {
-    message: 'Invalid NID format. (Accepted formats: 10, 13, or 17 digits)',
+export class UpdateAdminStatusDto {
+  @IsNotEmpty({ message: 'Status cannot be empty' })
+  @IsEnum(['active', 'inactive'], {
+    message: 'Status must be active or inactive',
   })
-  nidNumber: string;
-
-  fileName: string;
+  status: string;
 }

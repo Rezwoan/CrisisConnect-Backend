@@ -1,86 +1,47 @@
 import {
   Controller,
   Get,
-  Param,
-  Query,
   Post,
+  Put,
   Body,
-  UseInterceptors,
+  Param,
+  ParseIntPipe,
   UsePipes,
   ValidationPipe,
-  UploadedFile,
-  ParseFilePipe,
-  MaxFileSizeValidator,
-  FileTypeValidator,
-  Res,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage, MulterError } from 'multer';
 import { AdminService } from './admin.service';
-import { AdminDto } from './admin.dto';
+import { AdminDto, UpdateAdminStatusDto } from './admin.dto';
+import { Admin } from './admin.entity';
 
 @Controller('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
-  @Get('users')
-  getUsers(
-    @Query('role') role?: string,
-    @Query('isActive') isActive?: string,
-  ): object {
-    return this.adminService.getUsers(role, isActive);
-  }
-
-  @Get('users/:id')
-  getUserById(@Param('id') id: number): object {
-    return this.adminService.getUserById(id);
-  }
-
-  @Get('organizations')
-  getOrganizations(@Query('status') status?: string): object {
-    return this.adminService.getOrganizations(status);
-  }
-
-  @Get('organizations/:id')
-  getOrganizationById(@Param('id') id: number): object {
-    return this.adminService.getOrganizationById(id);
-  }
-
-  @Post('/insertadmin')
+  @Post('create')
   @UsePipes(new ValidationPipe())
-  @UseInterceptors(
-    FileInterceptor('fileName', {
-      storage: diskStorage({
-        destination: './uploads',
-        filename: function (req, file, cb) {
-          cb(null, Date.now() + file.originalname);
-        },
-      }),
-      fileFilter: (req, file, cb) => {
-        if (file.originalname.match(/^.*\.(jpg|jpeg|png|webp)$/)) {
-          return cb(null, true);
-        } else {
-          cb(new MulterError('LIMIT_UNEXPECTED_FILE', 'image'), false);
-        }
-      },
-    }),
-  )
-  insertAdmin(
-    @Body() userData: AdminDto,
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [new MaxFileSizeValidator({ maxSize: 2000000 })],
-      }),
-    )
-    file: Express.Multer.File,
-  ) {
-    userData.fileName = file.filename;
-    console.log(userData);
-    return this.adminService.insertAdmin(userData);
+  async createAdmin(@Body() adminDto: AdminDto): Promise<Admin> {
+    return await this.adminService.createAdmin(adminDto);
   }
 
-  @Get('/uploadedimage/:fileName')
-  getUploadedImage(@Param('fileName') fileName: string, @Res() res) {
-    res.sendFile(fileName, { root: './uploads' });
+  @Put('update-status/:id')
+  @UsePipes(new ValidationPipe())
+  async updateStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateAdminStatusDto: UpdateAdminStatusDto,
+  ): Promise<Admin> {
+    return await this.adminService.updateStatus(
+      id,
+      updateAdminStatusDto.status,
+    );
+  }
+
+  @Get('inactive')
+  async getInactiveUsers(): Promise<Admin[]> {
+    return await this.adminService.getInactiveUsers();
+  }
+
+  @Get('over-40')
+  async getUsersOver40(): Promise<Admin[]> {
+    return await this.adminService.getUsersOver40();
   }
 }

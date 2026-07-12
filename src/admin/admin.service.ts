@@ -1,93 +1,37 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, MoreThan } from 'typeorm';
+import { Admin } from './admin.entity';
 import { AdminDto } from './admin.dto';
 
 @Injectable()
 export class AdminService {
-  private readonly dummyUsers = [
-    { id: 1, name: 'Alice Johnson', role: 'admin', isActive: true },
-    { id: 2, name: 'Bob Smith', role: 'donor', isActive: true },
-    { id: 3, name: 'Charlie Brown', role: 'ngo', isActive: false },
-    { id: 4, name: 'Diana Prince', role: 'volunteer', isActive: true },
-  ];
+  constructor(
+    @InjectRepository(Admin)
+    private readonly adminRepository: Repository<Admin>,
+  ) {}
 
-  private readonly dummyOrganizations = [
-    { id: 101, name: 'Acme Corp', status: 'verified' },
-    { id: 102, name: 'Stark Industries', status: 'pending' },
-  ];
+  async createAdmin(adminDto: AdminDto): Promise<Admin> {
+    const admin = this.adminRepository.create(adminDto);
+    return await this.adminRepository.save(admin);
+  }
 
-  getUsers(role?: string, isActive?: string): object {
-    let users = [...this.dummyUsers];
+  async updateStatus(id: number, status: string): Promise<Admin> {
+    const admin = await this.adminRepository.findOne({ where: { id: id } });
 
-    if (role) {
-      users = users.filter(
-        (user) => user.role.toLowerCase() === role.toLowerCase(),
-      );
+    if (!admin) {
+      throw new NotFoundException('Admin not found');
     }
 
-    if (isActive) {
-      const isTrue = isActive.toLowerCase() === 'true';
-      users = users.filter((user) => user.isActive === isTrue);
-    }
-
-    return {
-      message:
-        users.length > 0
-          ? 'Successfully retrieved dummy users list'
-          : 'No dummy users found',
-      count: users.length,
-      data: users,
-    };
+    admin.status = status;
+    return await this.adminRepository.save(admin);
   }
 
-  getUserById(id: number): object {
-    const user = this.dummyUsers.find((user) => user.id == id) || null;
-
-    return {
-      message: user
-        ? `Successfully retrieved dummy user with ID: ${user.id}`
-        : `No user found with ID: ${id}`,
-      data: user,
-    };
+  async getInactiveUsers(): Promise<Admin[]> {
+    return await this.adminRepository.find({ where: { status: 'inactive' } });
   }
 
-  getOrganizations(status?: string): object {
-    let organizations = [...this.dummyOrganizations];
-
-    if (status) {
-      organizations = organizations.filter(
-        (org) => org.status.toLowerCase() === status.toLowerCase(),
-      );
-    }
-
-    return {
-      message:
-        organizations.length > 0
-          ? 'Successfully retrieved dummy organizations list'
-          : 'No dummy organizations found',
-      count: organizations.length,
-      data: organizations,
-    };
-  }
-
-  getOrganizationById(id: number): object {
-    const organization =
-      this.dummyOrganizations.find((org) => org.id == id) || null;
-
-    return {
-      message: organization
-        ? `Successfully retrieved dummy organization with ID: ${organization.id}`
-        : `No organization found with ID: ${id}`,
-      data: organization,
-    };
-  }
-
-  insertAdmin(userData: AdminDto): object {
-    userData.name = userData.name.trim();
-    userData.email = userData.email.trim();
-    userData.nidNumber = userData.nidNumber.trim();
-    return {
-      message: 'Admin inserted successfully',
-      data: userData,
-    };
+  async getUsersOver40(): Promise<Admin[]> {
+    return await this.adminRepository.find({ where: { age: MoreThan(40) } });
   }
 }
