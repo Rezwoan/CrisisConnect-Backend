@@ -13,7 +13,7 @@ export class Ngo {
   isActive: boolean;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
-  fullName: string;
+  fullName: string | null;
 
   // Postgres has no "bigint unsigned" type either. bigint is used as
   // required by the assignment. TypeORM returns bigint values as strings

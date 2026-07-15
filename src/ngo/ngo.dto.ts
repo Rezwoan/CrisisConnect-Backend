@@ -4,7 +4,11 @@ import {
   Matches,
   IsDateString,
   IsUrl,
+  IsOptional,
+  IsInt,
+  Min,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class NgoDto {
   @IsNotEmpty()
@@ -34,4 +38,28 @@ export class NgoDto {
     },
   )
   socialMediaLink: string;
+}
+
+// User Category 2 DTOs — these map to the `ngo` table (see ngo.entity.ts).
+export class CreateNgoUserDto {
+  // fullName is nullable in the schema, so it is optional here too.
+  @IsOptional()
+  @IsString()
+  fullName?: string;
+
+  // Postgres bigint is signed, so the "unsigned" part of the schema
+  // requirement is enforced here with Min(0).
+  @IsNotEmpty()
+  @Type(() => Number)
+  @IsInt({ message: 'Phone must be a whole number' })
+  @Min(0, { message: 'Phone must be unsigned (0 or greater)' })
+  phone: number;
+}
+
+export class UpdateNgoUserPhoneDto {
+  @IsNotEmpty()
+  @Type(() => Number)
+  @IsInt({ message: 'Phone must be a whole number' })
+  @Min(0, { message: 'Phone must be unsigned (0 or greater)' })
+  phone: number;
 }

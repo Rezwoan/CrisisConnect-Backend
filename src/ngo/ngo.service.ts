@@ -1,8 +1,16 @@
-import { Injectable } from '@nestjs/common';
-import { NgoDto } from './ngo.dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, IsNull } from 'typeorm';
+import { NgoDto, CreateNgoUserDto, UpdateNgoUserPhoneDto } from './ngo.dto';
+import { Ngo } from './ngo.entity';
 
 @Injectable()
 export class NgoService {
+  constructor(
+    @InjectRepository(Ngo)
+    private readonly ngoRepo: Repository<Ngo>,
+  ) {}
+
   private crises: any[] = [
     { id: '1', title: 'Flood in Dhaka', status: 'active', city: 'Dhaka' },
     {
@@ -138,5 +146,50 @@ export class NgoService {
       message: 'NGO inserted successfully',
       data: userData,
     };
+  }
+
+  // --- User Category 2 operations (backed by the `ngo` table) ---
+
+  async createUser(userData: CreateNgoUserDto): Promise<Ngo> {
+    // create() + save() (not insert()) so the @BeforeInsert generateId()
+    // hook runs and the saved entity comes back with its id.
+    const user = this.ngoRepo.create({
+      fullName: userData.fullName ?? null,
+      phone: String(userData.phone),
+    });
+    return this.ngoRepo.save(user);
+  }
+
+  async findAllUsers(): Promise<Ngo[]> {
+    return this.ngoRepo.find();
+  }
+
+  async findUserById(id: string): Promise<Ngo> {
+    const user = await this.ngoRepo.findOneBy({ id });
+    if (!user) {
+      throw new NotFoundException(`No user found with id: ${id}`);
+    }
+    return user;
+  }
+
+  async updatePhone(id: string, dto: UpdateNgoUserPhoneDto): Promise<Ngo> {
+    const user = await this.ngoRepo.findOneBy({ id });
+    if (!user) {
+      throw new NotFoundException(`No user found with id: ${id}`);
+    }
+    user.phone = String(dto.phone);
+    return this.ngoRepo.save(user);
+  }
+
+  async findUsersWithNullFullName(): Promise<Ngo[]> {
+    return this.ngoRepo.findBy({ fullName: IsNull() });
+  }
+
+  async removeUser(id: string): Promise<object> {
+    const result = await this.ngoRepo.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(`No user found with id: ${id}`);
+    }
+    return { message: `User ${id} removed successfully` };
   }
 }
