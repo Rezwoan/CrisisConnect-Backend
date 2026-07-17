@@ -2,454 +2,278 @@
 
 Base URL: `http://localhost:3000/ngo`
 
-Start the server first: `npm run start:dev` (make sure your `.env` is set up — see the repo README).
+Legend: **✅ Implemented** — test it now. **⬜ Planned** — build it per
+`NGO_TASKS.md`, then use this doc as the target contract for what it should
+return.
 
-Endpoints 1–5 serve in-memory dummy data, so those responses are deterministic regardless of your local DB contents. Endpoints 6–11 are the **User Category 2** operations and hit the real `ngo` table in Postgres — ids there are generated UUIDs, so yours will differ from the examples.
+Once your Guard exists (Phase 11), every route below except signup/login
+needs a header:
+```
+Authorization: Bearer <token from /ngo/verify-login-otp>
+```
 
-For every request in Postman: set the method + URL as shown, and for POST requests set `Body` → `raw` → `JSON`.
+## Route summary
+
+| Status | Verb | Route | Filters |
+|---|---|---|---|
+| ✅ | GET | `/ngo` | — |
+| ✅ | POST | `/ngo/profile/image` | — |
+| ⬜ | POST | `/ngo/signup` | — |
+| ⬜ | POST | `/ngo/verify-otp` | — |
+| ⬜ | POST | `/ngo/login` | — |
+| ⬜ | POST | `/ngo/verify-login-otp` | — |
+| ⬜ | GET | `/ngo/profile` | — |
+| ⬜ | PUT | `/ngo/profile` | — |
+| ⬜ | PATCH | `/ngo/profile/active` | — |
+| ⬜ | GET | `/ngo/crisis` | `?status=&city=&category=` |
+| ⬜ | POST | `/ngo/crisis/:crisisId/join` | — |
+| ⬜ | DELETE | `/ngo/crisis/:crisisId/leave` | — |
+| ⬜ | GET | `/ngo/my-crises` | — |
+| ⬜ | POST | `/ngo/volunteer-call` | — |
+| ⬜ | GET | `/ngo/volunteer-call` | `?status=&crisisId=&city=` |
+| ⬜ | PUT | `/ngo/volunteer-call/:id` | — |
+| ⬜ | PATCH | `/ngo/volunteer-call/:id/status` | — |
+| ⬜ | DELETE | `/ngo/volunteer-call/:id` | — |
+| ⬜ | POST | `/ngo/donation-call` | — |
+| ⬜ | GET | `/ngo/donation-call` | `?status=&crisisId=` |
+| ⬜ | PATCH | `/ngo/donation-call/:id/status` | — |
+| ⬜ | GET | `/ngo/volunteer-call/:id/applicants` | `?status=` |
+| ⬜ | POST | `/ngo/application/:id/approve` | — |
+| ⬜ | PATCH | `/ngo/application/:id/reject` | — |
+| ⬜ | GET | `/ngo/assignment` | `?status=&volunteerCallId=` |
+| ⬜ | PATCH | `/ngo/assignment/:id/complete` | — |
 
 ---
 
-## 1. GET `/ngo/crises`
+## ✅ `GET /ngo`
 
-List all crises, optionally filtered by `status` and/or `city` query params.
+**Postman**: Method `GET`, URL `http://localhost:3000/ngo`. No headers, no
+body.
 
-**Request:** `GET http://localhost:3000/ngo/crises`
-
-**Expected output (200):**
-```json
-[
-  { "id": "1", "title": "Flood in Dhaka", "status": "active", "city": "Dhaka" },
-  { "id": "2", "title": "Earthquake in Chittagong", "status": "resolved", "city": "Chittagong" },
-  { "id": "3", "title": "Cyclone in Cox's Bazar", "status": "active", "city": "Cox's Bazar" }
-]
+**Expected output** — `200 OK`, plain text:
+```
+NGO module is working
 ```
 
-**Request:** `GET http://localhost:3000/ngo/crises?status=active`
+## ✅ `POST /ngo/profile/image`
 
-**Expected output (200):**
+**Postman**:
+- Method `POST`, URL `http://localhost:3000/ngo/profile/image`
+- Body tab → `form-data`
+- Add a key named exactly `image`, change its type from "Text" to "File"
+  (dropdown on the right of the key field), choose a `.jpg`/`.png`/`.webp`
+  file under 2MB.
+
+**Expected output** — `200 OK`:
 ```json
-[
-  { "id": "1", "title": "Flood in Dhaka", "status": "active", "city": "Dhaka" },
-  { "id": "3", "title": "Cyclone in Cox's Bazar", "status": "active", "city": "Cox's Bazar" }
-]
+{
+  "message": "Profile image uploaded successfully",
+  "profileImage": "/uploads/ngo/1784277529778-776371457.png"
+}
 ```
+The uploaded file is then reachable at
+`http://localhost:3000<profileImage>` (static-served).
 
-**Request:** `GET http://localhost:3000/ngo/crises?status=active&city=Dhaka`
+**Error cases**:
+- No `image` key in the form-data → `400`:
+  ```json
+  { "message": "Image file is required", "error": "Bad Request", "statusCode": 400 }
+  ```
+- Wrong file type (e.g. a `.txt` or `.pdf`) → `400`:
+  ```json
+  { "message": "Only jpeg, png, or webp images are allowed", "error": "Bad Request", "statusCode": 400 }
+  ```
+- File over 2MB → `413 Payload Too Large`.
 
-**Expected output (200):**
-```json
-[
-  { "id": "1", "title": "Flood in Dhaka", "status": "active", "city": "Dhaka" }
-]
-```
+Note: until the `NgoGuard` exists (Phase 11), this route doesn't actually
+know *which* NGO's row to update — `req.user` is undefined without a JWT
+guard populating it. The row-update only becomes meaningful once you're
+sending a real `Authorization: Bearer <token>` header and the guard is
+wired in.
 
 ---
 
-## 2. GET `/ngo/crises/:id`
+## ⬜ Auth routes (build per `NGO_TASKS.md` Phase 4)
 
-**Request:** `GET http://localhost:3000/ngo/crises/1`
-
-**Expected output (200):**
+### `POST /ngo/signup`
+**Postman**: `POST`, body → `raw` → `JSON`:
 ```json
-{ "id": "1", "title": "Flood in Dhaka", "status": "active", "city": "Dhaka" }
+{
+  "email": "myngo@example.com",
+  "password": "Secret@123",
+  "orgName": "Relief Corps",
+  "regNumber": "REG-2026-001",
+  "phone": "8801712345678",
+  "city": "Dhaka"
+}
 ```
-
-**Request (not found):** `GET http://localhost:3000/ngo/crises/999`
-
-**Expected output (200 — service returns an error payload, not an HTTP 404):**
+**Expected** — `201`, an OTP is emailed to `MAIL_USER`'s test inbox (or the
+address you signed up with, depending on your mailer setup):
 ```json
-{ "error": "Crisis not found" }
+{ "message": "Signup successful, OTP sent to your email" }
 ```
+Duplicate email → `409 Conflict`.
+
+### `POST /ngo/verify-otp`
+```json
+{ "email": "myngo@example.com", "code": "482913" }
+```
+**Expected** — `200`:
+```json
+{ "message": "Account verified successfully" }
+```
+Expired/wrong code → `400 Bad Request`.
+
+### `POST /ngo/login`
+```json
+{ "email": "myngo@example.com", "password": "Secret@123" }
+```
+**Expected** — `200`, OTP emailed again:
+```json
+{ "message": "OTP sent to your email" }
+```
+Wrong password or unverified account → `401 Unauthorized`.
+
+### `POST /ngo/verify-login-otp`
+```json
+{ "email": "myngo@example.com", "code": "119284" }
+```
+**Expected** — `200`:
+```json
+{ "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }
+```
+Copy `accessToken` into the `Authorization: Bearer <token>` header for every
+route below.
 
 ---
 
-## 3. GET `/ngo/crises/:id/tasks`
+## ⬜ Profile
 
-Tasks for a given crisis, optionally filtered by `status`.
-
-**Request:** `GET http://localhost:3000/ngo/crises/1/tasks`
-
-**Expected output (200):**
-```json
-[
-  {
-    "id": "1",
-    "crisisId": "1",
-    "title": "Distribute dry food",
-    "requiredSkills": ["logistics", "field support"],
-    "status": "open"
-  },
-  {
-    "id": "2",
-    "crisisId": "1",
-    "title": "Set up temporary shelter",
-    "requiredSkills": ["construction", "coordination"],
-    "status": "in-progress"
-  }
-]
-```
-
-**Request:** `GET http://localhost:3000/ngo/crises/1/tasks?status=open`
-
-**Expected output (200):**
-```json
-[
-  {
-    "id": "1",
-    "crisisId": "1",
-    "title": "Distribute dry food",
-    "requiredSkills": ["logistics", "field support"],
-    "status": "open"
-  }
-]
-```
-
----
-
-## 4. GET `/ngo/volunteers`
-
-Volunteers, optionally filtered by `crisisId`.
-
-**Request:** `GET http://localhost:3000/ngo/volunteers`
-
-**Expected output (200):**
-```json
-[
-  { "id": "1", "crisisId": "1", "name": "Ayesha Rahman", "skills": ["medical", "first aid"], "applicationStatus": "approved" },
-  { "id": "2", "crisisId": "1", "name": "Tanvir Hasan", "skills": ["logistics", "driving"], "applicationStatus": "pending" },
-  { "id": "3", "crisisId": "2", "name": "Nusrat Jahan", "skills": ["translation", "field support"], "applicationStatus": "approved" }
-]
-```
-
-**Request:** `GET http://localhost:3000/ngo/volunteers?crisisId=1`
-
-**Expected output (200):**
-```json
-[
-  { "id": "1", "crisisId": "1", "name": "Ayesha Rahman", "skills": ["medical", "first aid"], "applicationStatus": "approved" },
-  { "id": "2", "crisisId": "1", "name": "Tanvir Hasan", "skills": ["logistics", "driving"], "applicationStatus": "pending" }
-]
-```
-
----
-
-## 5. POST `/ngo/insertngo`
-
-Registers an NGO. Body is validated against `NgoDto` (`src/ngo/ngo.dto.ts`):
-
-| Field | Rules |
-| --- | --- |
-| `name` | required, string, must not contain digits |
-| `password` | required, string, must contain at least one of `@ # $ &` |
-| `date` | required, ISO 8601 date string |
-| `socialMediaLink` | required, must be a valid URL |
-
-**Request:** `POST http://localhost:3000/ngo/insertngo`
-
-Body:
+### `GET /ngo/profile`
+**Postman**: `GET`, `Authorization: Bearer <token>`.
+**Expected** — `200`:
 ```json
 {
-  "name": "Green Relief Foundation",
-  "password": "Secure@123",
-  "date": "2026-07-01",
-  "socialMediaLink": "https://facebook.com/greenrelief"
-}
-```
-
-**Expected output (201):**
-```json
-{
-  "message": "NGO inserted successfully",
-  "data": {
-    "name": "Green Relief Foundation",
-    "password": "Secure@123",
-    "date": "2026-07-01",
-    "socialMediaLink": "https://facebook.com/greenrelief"
-  }
-}
-```
-
-**Request (invalid — name has digits, weak password, bad date, bad URL):** `POST http://localhost:3000/ngo/insertngo`
-
-Body:
-```json
-{
-  "name": "NGO123",
-  "password": "weakpass",
-  "date": "not-a-date",
-  "socialMediaLink": "not-a-url"
-}
-```
-
-**Expected output (400 Bad Request):**
-```json
-{
-  "message": [
-    "Name should not contain any numbers",
-    "Password must contain at least one special character (@ or # or $ or &)",
-    "date must be a valid ISO 8601 date string",
-    "Social media link must be a valid URL"
-  ],
-  "error": "Bad Request",
-  "statusCode": 400
-}
-```
-
-**Request (empty body `{}`):** `POST http://localhost:3000/ngo/insertngo`
-
-**Expected output (400 Bad Request):** one validation message per field per broken rule (both the format rule and the "should not be empty" rule fire together), e.g.:
-```json
-{
-  "message": [
-    "Name should not contain any numbers",
-    "name must be a string",
-    "name should not be empty",
-    "Password must contain at least one special character (@ or # or $ or &)",
-    "password must be a string",
-    "password should not be empty",
-    "date must be a valid ISO 8601 date string",
-    "date should not be empty",
-    "Social media link must be a valid URL",
-    "socialMediaLink should not be empty"
-  ],
-  "error": "Bad Request",
-  "statusCode": 400
-}
-```
-
----
-
-# User Category 2 operations (real database)
-
-These endpoints operate on the `ngo` table defined in `src/ngo/ngo.entity.ts`:
-
-| Column | Definition |
-| --- | --- |
-| `id` | varchar(36) primary key, generated by `generateId()` in a `@BeforeInsert` hook (UUID) |
-| `isActive` | boolean, defaults to `true` |
-| `fullName` | varchar(100), nullable |
-| `phone` | bigint, unsigned |
-
-Two notes on `phone`. Postgres has no *unsigned* bigint, so the unsigned rule is enforced in the DTO with `@Min(0)` — a negative phone is rejected with a 400 before it reaches the DB. And TypeORM returns bigint values as **strings** in JavaScript to avoid precision loss, so `phone` comes back quoted (`"8801712345678"`) even though you send it as a number.
-
-Run these in order — 6 gives you the ids that 8, 9, and 11 need, and the null-name row that 10 looks for. Endpoint 7 (`GET /ngo/users`) lists the whole table, so you can use it after any create, update, or delete to see the change land.
-
----
-
-## 6. POST `/ngo/users` — Create a user
-
-`fullName` is optional (the column is nullable); `phone` is required.
-
-**Request:** `POST http://localhost:3000/ngo/users`
-
-Body:
-```json
-{
-  "fullName": "Rezwoan Ahmed",
-  "phone": 8801712345678
-}
-```
-
-**Expected output (201):** note that `id` and `isActive` are filled in for you.
-```json
-{
-  "id": "c6e80b35-d5f7-427b-90ab-1bf04269c553",
-  "isActive": true,
-  "fullName": "Rezwoan Ahmed",
-  "phone": "8801712345678"
-}
-```
-
-**Request (omit `fullName` to create a null-name row — you need one of these for endpoint 10):** `POST http://localhost:3000/ngo/users`
-
-Body:
-```json
-{
-  "phone": 8801999888777
-}
-```
-
-**Expected output (201):**
-```json
-{
-  "id": "81167f15-f5b1-4484-933f-9b4de9157b7e",
-  "isActive": true,
+  "id": 1,
+  "orgName": "Relief Corps",
+  "regNumber": "REG-2026-001",
   "fullName": null,
-  "phone": "8801999888777"
+  "phone": "8801712345678",
+  "city": "Dhaka",
+  "isActive": true,
+  "profileImage": "/uploads/ngo/1784277529778-776371457.png"
 }
 ```
 
-**Request (invalid — negative phone violates the unsigned rule):** `POST http://localhost:3000/ngo/users`
+### `PUT /ngo/profile`
+Body: full replacement of the editable fields (`orgName`, `regNumber`,
+`fullName`, `phone`, `city`). **Expected** — `200` with the updated row.
 
-Body:
+### `PATCH /ngo/profile/active`
 ```json
-{
-  "fullName": "Bad",
-  "phone": -5
-}
+{ "isActive": false }
+```
+**Expected** — `200` with just `{ "isActive": false }` reflected.
+
+---
+
+## ⬜ Crisis browsing + participation
+
+### `GET /ngo/crisis?status=ACTIVE&city=Dhaka`
+**Expected** — `200`, array of crises matching the filters (omit query
+params to get all):
+```json
+[
+  { "id": 1, "title": "Flood in Dhaka", "severity": "HIGH", "status": "ACTIVE", "city": "Dhaka", "category": "Flood" }
+]
 ```
 
-**Expected output (400 Bad Request):**
+### `POST /ngo/crisis/1/join`
+No body. **Expected** — `200`:
 ```json
-{
-  "message": ["Phone must be unsigned (0 or greater)"],
-  "error": "Bad Request",
-  "statusCode": 400
-}
+{ "message": "Joined crisis successfully" }
+```
+Joining a crisis you're already part of → `409 Conflict`. Joining a
+non-existent crisis id → `404 Not Found`.
+
+### `DELETE /ngo/crisis/1/leave`
+**Expected** — `200`: `{ "message": "Left crisis successfully" }`.
+
+### `GET /ngo/my-crises`
+**Expected** — `200`, your NGO row with `crises` populated:
+```json
+{ "id": 1, "orgName": "Relief Corps", "crises": [{ "id": 1, "title": "Flood in Dhaka" }] }
 ```
 
 ---
 
-## 7. GET `/ngo/users` — See all users
+## ⬜ Volunteer calls
 
-Lists every row in the `ngo` table. No query params. Use this to confirm what any other endpoint changed.
+### `POST /ngo/volunteer-call`
+```json
+{
+  "title": "Flood relief volunteers needed",
+  "description": "Distributing dry food and setting up shelters",
+  "slots": 20,
+  "city": "Dhaka",
+  "crisisId": 1
+}
+```
+**Expected** — `201`, the created row with `status: "OPEN"` (default).
 
-**Request:** `GET http://localhost:3000/ngo/users`
+### `GET /ngo/volunteer-call?status=OPEN&crisisId=1`
+**Expected** — `200`, array of matching calls.
 
-**Expected output (200):** whatever is in your table — for example, three seeded rows plus the two you created in endpoint 6.
+### `PUT /ngo/volunteer-call/5`, `PATCH /ngo/volunteer-call/5/status`,
+`DELETE /ngo/volunteer-call/5` — standard update/status-flip/delete,
+`404` if the id doesn't belong to your NGO.
+
+---
+
+## ⬜ Donation calls
+
+### `POST /ngo/donation-call`
+```json
+{
+  "title": "Flood relief fund",
+  "description": "Covers food, shelter, and medical supplies",
+  "targetAmount": "50000.00",
+  "crisisId": 1
+}
+```
+**Expected** — `201`, created row with `status: "OPEN"`,
+`raisedAmount: "0.00"` (defaults).
+
+### `GET /ngo/donation-call?status=OPEN&crisisId=1`, `PATCH .../status` —
+same shape as volunteer calls above.
+
+---
+
+## ⬜ Applicants, approval, assignments
+
+### `GET /ngo/volunteer-call/5/applicants?status=PENDING`
+**Expected** — `200`, array of applications with volunteer + skills loaded:
 ```json
 [
   {
-    "id": "a1b2c3d4-0001-4000-8000-000000000001",
-    "isActive": true,
-    "fullName": "Red Crescent Sylhet",
-    "phone": "8801711000001"
-  },
-  {
-    "id": "a1b2c3d4-0003-4000-8000-000000000003",
-    "isActive": false,
-    "fullName": "Chittagong Aid Network",
-    "phone": "8801711000003"
-  },
-  {
-    "id": "81167f15-f5b1-4484-933f-9b4de9157b7e",
-    "isActive": true,
-    "fullName": null,
-    "phone": "8801999888777"
+    "id": 3,
+    "status": "PENDING",
+    "message": "I have first-aid experience",
+    "volunteer": { "id": 2, "fullName": "Ayesha Rahman", "skills": [{ "name": "first aid" }] }
   }
 ]
 ```
 
-An empty table returns `[]` (200, not 404).
-
----
-
-## 8. GET `/ngo/users/:id` — See one user
-
-Fetch a single row by id — the quickest way to check that endpoint 9's phone update actually persisted.
-
-**Request:** `GET http://localhost:3000/ngo/users/c6e80b35-d5f7-427b-90ab-1bf04269c553`
-
-**Expected output (200):**
+### `POST /ngo/application/3/approve`
+**Expected** — `200`, creates an `assignment`, flips application to
+`APPROVED`, emails the volunteer:
 ```json
-{
-  "id": "c6e80b35-d5f7-427b-90ab-1bf04269c553",
-  "isActive": true,
-  "fullName": "Rezwoan Ahmed",
-  "phone": "8801712345678"
-}
+{ "message": "Application approved", "assignment": { "id": 1, "status": "ACTIVE" } }
 ```
 
-**Request (unknown id):** `GET http://localhost:3000/ngo/users/nope`
+### `PATCH /ngo/application/3/reject` — `200`, flips to `REJECTED`.
 
-**Expected output (404 Not Found):**
-```json
-{
-  "message": "No user found with id: nope",
-  "error": "Not Found",
-  "statusCode": 404
-}
-```
+### `GET /ngo/assignment?status=ACTIVE&volunteerCallId=5`
+**Expected** — `200`, array of assignments matching the filters.
 
----
-
-## 9. PUT `/ngo/users/:id/phone` — Modify the phone number
-
-Copy the `id` from the first user you created in endpoint 6.
-
-**Request:** `PUT http://localhost:3000/ngo/users/c6e80b35-d5f7-427b-90ab-1bf04269c553/phone`
-
-Body:
-```json
-{
-  "phone": 8801555000111
-}
-```
-
-**Expected output (200):** the full updated row.
-```json
-{
-  "id": "c6e80b35-d5f7-427b-90ab-1bf04269c553",
-  "isActive": true,
-  "fullName": "Rezwoan Ahmed",
-  "phone": "8801555000111"
-}
-```
-
-**Request (unknown id):** `PUT http://localhost:3000/ngo/users/00000000-0000-0000-0000-000000000000/phone` with the same body.
-
-**Expected output (404 Not Found):**
-```json
-{
-  "message": "No user found with id: 00000000-0000-0000-0000-000000000000",
-  "error": "Not Found",
-  "statusCode": 404
-}
-```
-
----
-
-## 10. GET `/ngo/users/null-name` — Retrieve users with a null full name
-
-Returns every row where `fullName IS NULL` (TypeORM's `IsNull()` operator). No query params.
-
-**Request:** `GET http://localhost:3000/ngo/users/null-name`
-
-**Expected output (200):** only the user you created without a `fullName` — the named one is excluded.
-```json
-[
-  {
-    "id": "81167f15-f5b1-4484-933f-9b4de9157b7e",
-    "isActive": true,
-    "fullName": null,
-    "phone": "8801999888777"
-  }
-]
-```
-
-If no such rows exist, you get an empty array `[]` (200, not 404).
-
----
-
-## 11. DELETE `/ngo/users/:id` — Remove a user by id
-
-**Request:** `DELETE http://localhost:3000/ngo/users/c6e80b35-d5f7-427b-90ab-1bf04269c553`
-
-**Expected output (200):**
-```json
-{
-  "message": "User c6e80b35-d5f7-427b-90ab-1bf04269c553 removed successfully"
-}
-```
-
-**Request (run the exact same DELETE a second time):** `DELETE http://localhost:3000/ngo/users/c6e80b35-d5f7-427b-90ab-1bf04269c553`
-
-**Expected output (404 Not Found):** the row is already gone, so nothing is deleted.
-```json
-{
-  "message": "No user found with id: c6e80b35-d5f7-427b-90ab-1bf04269c553",
-  "error": "Not Found",
-  "statusCode": 404
-}
-```
-
----
-
-## Quick Postman collection setup
-
-1. Create a collection called `CrisisConnect - NGO`.
-2. Add a collection variable `baseUrl` = `http://localhost:3000/ngo`.
-3. Add the 11 requests above using `{{baseUrl}}/...` as the URL.
-4. For the POST requests, save both a "valid" and an "invalid" saved example so you can quickly re-run either case.
-5. For endpoints 8, 9, and 11, add a collection variable `userId` and paste in the `id` returned by endpoint 6, then use `{{baseUrl}}/users/{{userId}}/phone`. That way you set the id once instead of editing two URLs.
+### `PATCH /ngo/assignment/1/complete` — `200`, flips to `COMPLETED`.
