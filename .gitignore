@@ -42,6 +42,23 @@ pids/
 .eslintcache
 .nyc_output/
 
+# Uploads must go into each role's own uploads/<role> folder, never the
+# base uploads/ folder directly. Keep the 4 role folders in git via
+# .gitkeep, but ignore anything actually uploaded into them.
+uploads/*
+!uploads/admin/
+!uploads/donor/
+!uploads/ngo/
+!uploads/volunteer/
+uploads/admin/*
+uploads/donor/*
+uploads/ngo/*
+uploads/volunteer/*
+!uploads/admin/.gitkeep
+!uploads/donor/.gitkeep
+!uploads/ngo/.gitkeep
+!uploads/volunteer/.gitkeep
+
 # OS and editor files
 .DS_Store
 Thumbs.db

@@ -22,6 +22,30 @@ Anything outside those four folders — `app.module.ts`, `main.ts`, `package.jso
 
 Keep PRs scoped to your module. If a change genuinely needs to touch another person's folder (e.g. a shared DTO shape) or a root config file, say so in the PR description — it'll need that owner's (or @Rezwoan's) review regardless of whose branch it came from.
 
+**Importing another role's entity is not "touching" their folder.** Cross-role
+relationships (e.g. Donor incrementing NGO's `donation_call.raisedAmount`,
+NGO reading Volunteer's `application` rows) are expected — the pattern is
+always: `import` the other role's entity class, register it in **your own**
+module's `TypeOrmModule.forFeature([...])`, and inject its repository into
+**your own** service. You never open or edit a controller/service/entity
+file outside your own folder. See each role's own `*_TASKS.md` for the
+specific places this comes up.
+
+**Merge conflicts are your responsibility, not the repo owner's.** Rebase
+your branch on the latest `dev` before opening a PR:
+```bash
+git checkout <your-branch>
+git pull origin dev
+git push origin <your-branch>
+```
+If your PR shows conflicts, resolve them yourself — the repo owner will not
+fix merge conflicts on your behalf.
+
+**Build guides**: each role folder has its own `*_TASKS.md` (full
+step-by-step build order for that role, from DTOs through the JWT guard) and
+`*_API_TESTING.md` (every route's Postman setup and expected response, with
+a ✅/⬜ status marker for what's actually built vs. still planned).
+
 ## Environment setup
 
 ```bash
