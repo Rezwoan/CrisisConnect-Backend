@@ -1,13 +1,5 @@
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+// Payload shapes for Volunteer requests. Add real fields (with
+// class-validator decorators) here as the API is built out.
+export class VolunteerDto {}
 
-export class CreateVolunteerDto {
-  @IsNotEmpty({ message: 'Username is required' })
-  @IsString()
-  @MaxLength(100)
-  username: string;
-
-  @IsNotEmpty({ message: 'Full name is required' })
-  @IsString()
-  @MaxLength(150)
-  fullName: string;
-}
+export class ApplyTaskDto {}

@@ -1,98 +1,132 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# CrisisConnect Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A [NestJS](https://nestjs.com/) + [TypeORM](https://typeorm.io/) API for coordinating crisis relief between four roles: **Admin**, **NGO**, **Volunteer**, and **Donor**. Each role has its own module under `src/`.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Tech stack
 
-## Description
+- [NestJS](https://nestjs.com/) 11 (Express platform)
+- [TypeORM](https://typeorm.io/) + PostgreSQL
+- [class-validator](https://github.com/typestack/class-validator) for DTO validation
+- [@nestjs/config](https://docs.nestjs.com/techniques/configuration) for environment-based configuration
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Project structure
 
-## Project setup
-
-```bash
-$ npm install
+```
+src/
+  common/      Shared, repo-owner-only — user & otp entities, common.enums.ts,
+               config/multer.config.ts (shared upload config)
+  admin/       Admin module      — users, crises, announcements
+  ngo/         NGO module        — crisis participation, volunteer/donation calls, assignments
+  volunteer/   Volunteer module  — registration, skills, applications, work log
+  donor/       Donor module      — crisis following, donations, payments, receipts
+  app.module.ts, main.ts         — app bootstrap, DB connection, static file serving
 ```
 
-## Compile and run the project
+Each role folder owns its own `*.controller.ts`, `*.service.ts`, `dto/`,
+`entities/`, `*.enums.ts`, and `*.module.ts`. See
+[CONTRIBUTING.md](./CONTRIBUTING.md) for who owns which folder and how PRs
+are reviewed, and see each folder's own `*_TASKS.md` (full build guide) and
+`*_API_TESTING.md` (Postman reference) for the details of that role.
+
+## Database schema
+
+The full entity/relationship design (16 roles + 4 join tables — `user`,
+`otp`, one entity set per role, plus `crisis_participation`,
+`announcement_recipient`, `volunteer_skill`, `crisis_follow`) lives in
+`CrisisConnect_Midterm_PRD.md` (Part 3). All entities are already written;
+each role's own routes/services are built out per that role's `*_TASKS.md`.
+
+## Profile images
+
+Every role has a `profileImage` column and a
+`POST /<role>/profile/image` upload endpoint (multipart, field name
+`image`, jpeg/png/webp only, 2MB max). Uploaded files are saved to their own
+`uploads/<role>/` folder and served back at `/uploads/<role>/<filename>`.
+Only NGO's route is implemented so far — see each role's `*_TASKS.md`
+"Task 0" for the exact steps to add your own.
+
+## Setup
+
+### 1. Install dependencies
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm install
 ```
 
-## Run tests
+### 2. Configure your local database
+
+This project does **not** hardcode database credentials — each person runs their own local PostgreSQL instance. Copy the example env file and fill in your own values:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+cp .env.example .env
 ```
 
-## Deployment
+```
+PORT=3000
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=<your local postgres password>
+DB_NAME=users
+```
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+`.env` is gitignored — it will never show up in `git status` or a PR diff, so everyone can use different local credentials without merge conflicts.
+
+Make sure PostgreSQL is running locally and the database named in `DB_NAME` exists:
+
+```sql
+CREATE DATABASE users;
+```
+
+Tables are created automatically on startup (`synchronize: true` in `app.module.ts`) — no manual migrations needed for local dev.
+
+### 3. Run the app
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# development, single run
+npm run start
+
+# development, restarts on file change
+npm run start:dev
+
+# production
+npm run build
+npm run start:prod
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+The API listens on `http://localhost:3000` (or whatever `PORT` you set).
 
-## Resources
+## Scripts
 
-Check out a few resources that may come in handy when working with NestJS:
+| Command | Description |
+| --- | --- |
+| `npm run start:dev` | Run with hot reload |
+| `npm run build` | Compile TypeScript to `dist/` |
+| `npm run lint` | Lint and auto-fix `src/**/*.ts` |
+| `npm run format` | Format `src/**/*.ts` with Prettier |
+| `npm test` | Run unit tests (`*.spec.ts`) |
+| `npm run test:e2e` | Run end-to-end tests |
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## API overview
 
-## Support
+Each role currently exposes a base health-check route, e.g. `GET /admin` →
+`"Admin module is working"` (same shape for `/ngo`, `/volunteer`, `/donor`).
+NGO additionally has a working `POST /ngo/profile/image`. Every other route
+in the PRD (auth, CRUD, relationships) is still to be built — see each
+role's own `*_TASKS.md` for the full build order and `*_API_TESTING.md` for
+the complete target route list with exact Postman setup and expected
+output:
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+- [`src/admin/ADMIN_TASKS.md`](./src/admin/ADMIN_TASKS.md) /
+  [`ADMIN_API_TESTING.md`](./src/admin/ADMIN_API_TESTING.md)
+- [`src/ngo/NGO_TASKS.md`](./src/ngo/NGO_TASKS.md) /
+  [`NGO_API_TESTING.md`](./src/ngo/NGO_API_TESTING.md)
+- [`src/volunteer/VOLUNTEER_TASKS.md`](./src/volunteer/VOLUNTEER_TASKS.md) /
+  [`VOLUNTEER_API_TESTING.md`](./src/volunteer/VOLUNTEER_API_TESTING.md)
+- [`src/donor/DONOR_TASKS.md`](./src/donor/DONOR_TASKS.md) /
+  [`DONOR_API_TESTING.md`](./src/donor/DONOR_API_TESTING.md)
 
-## Stay in touch
+## Contributing
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the branching model, folder ownership, and PR review requirements before opening a pull request.
