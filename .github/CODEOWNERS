@@ -1,0 +1,8 @@
+# Default owner for anything not explicitly listed below
+# (root config, shared modules, app.module.ts, package.json, etc.)
+* @Rezwoan
+
+/src/admin/      @steve-A7
+/src/ngo/        @Rezwoan
+/src/volunteer/  @nirzordas
+/src/donor/      @nazmussakib0203
