@@ -30,7 +30,11 @@ export class DonationCall {
   @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
   raisedAmount!: string;
 
-  @Column({ type: 'enum', enum: DonationCallStatus, default: DonationCallStatus.OPEN })
+  @Column({
+    type: 'enum',
+    enum: DonationCallStatus,
+    default: DonationCallStatus.OPEN,
+  })
   status!: DonationCallStatus;
 
   @CreateDateColumn()

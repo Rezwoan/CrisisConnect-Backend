@@ -6,8 +6,12 @@ Legend: **✅ Implemented** — test it now. **⬜ Planned** — build it per
 `NGO_TASKS.md`, then use this doc as the target contract for what it should
 return.
 
-Once your Guard exists (Phase 11), every route below except signup/login
-needs a header:
+Note on status codes: NestJS returns **`201`** for every `@Post` route by
+default, so the auth routes below all answer `201`, not `200`. If you want
+`200` on the non-creating ones, add `@HttpCode(200)` to those handlers.
+
+`NgoGuard` now exists (`src/ngo/ngo.guard.ts`). Every guarded route needs a
+header:
 ```
 Authorization: Bearer <token from /ngo/verify-login-otp>
 ```
@@ -16,12 +20,12 @@ Authorization: Bearer <token from /ngo/verify-login-otp>
 
 | Status | Verb | Route | Filters |
 |---|---|---|---|
-| ✅ | GET | `/ngo` | — |
 | ✅ | POST | `/ngo/profile/image` | — |
-| ⬜ | POST | `/ngo/signup` | — |
-| ⬜ | POST | `/ngo/verify-otp` | — |
-| ⬜ | POST | `/ngo/login` | — |
-| ⬜ | POST | `/ngo/verify-login-otp` | — |
+| ✅ | POST | `/ngo/signup` | — |
+| ✅ | POST | `/ngo/verify-otp` | — |
+| ✅ | POST | `/ngo/resend-otp` | — |
+| ✅ | POST | `/ngo/login` | — |
+| ✅ | POST | `/ngo/verify-login-otp` | — |
 | ⬜ | GET | `/ngo/profile` | — |
 | ⬜ | PUT | `/ngo/profile` | — |
 | ⬜ | PATCH | `/ngo/profile/active` | — |
@@ -45,26 +49,19 @@ Authorization: Bearer <token from /ngo/verify-login-otp>
 
 ---
 
-## ✅ `GET /ngo`
-
-**Postman**: Method `GET`, URL `http://localhost:3000/ngo`. No headers, no
-body.
-
-**Expected output** — `200 OK`, plain text:
-```
-NGO module is working
-```
-
 ## ✅ `POST /ngo/profile/image`
+
+**Guarded** — needs `Authorization: Bearer <token>`.
 
 **Postman**:
 - Method `POST`, URL `http://localhost:3000/ngo/profile/image`
+- Headers → `Authorization: Bearer <token from /ngo/verify-login-otp>`
 - Body tab → `form-data`
 - Add a key named exactly `image`, change its type from "Text" to "File"
   (dropdown on the right of the key field), choose a `.jpg`/`.png`/`.webp`
   file under 2MB.
 
-**Expected output** — `200 OK`:
+**Expected output** — `201`:
 ```json
 {
   "message": "Profile image uploaded successfully",
@@ -84,12 +81,14 @@ The uploaded file is then reachable at
   { "message": "Only jpeg, png, or webp images are allowed", "error": "Bad Request", "statusCode": 400 }
   ```
 - File over 2MB → `413 Payload Too Large`.
+- No/!`Bearer` header → `401` "Missing or invalid Authorization header".
+- Tampered, wrong-secret, or expired token → `401` "Invalid or expired token".
+- Valid token whose `role` is not `NGO` → `403` "This route is for NGO
+  accounts only".
 
-Note: until the `NgoGuard` exists (Phase 11), this route doesn't actually
-know *which* NGO's row to update — `req.user` is undefined without a JWT
-guard populating it. The row-update only becomes meaningful once you're
-sending a real `Authorization: Bearer <token>` header and the guard is
-wired in.
+The guard decodes the token and puts `{ userId, role }` on `req.user`, so
+the service updates *your* NGO row — identified by the token, never by
+anything the client sends.
 
 ---
 
@@ -118,30 +117,55 @@ Duplicate email → `409 Conflict`.
 ```json
 { "email": "myngo@example.com", "code": "482913" }
 ```
-**Expected** — `200`:
+**Expected** — `201`:
 ```json
 { "message": "Account verified successfully" }
 ```
-Expired/wrong code → `400 Bad Request`.
+Expired/wrong code → `400 Bad Request`. Unknown email → `404 Not Found`.
+
+### `POST /ngo/resend-otp`
+For when the first OTP expired before it was entered — without this there is
+no way back into an unverified account (signup returns `409`, verify-otp
+returns `400` forever).
+```json
+{ "email": "myngo@example.com" }
+```
+**Expected** — `201`:
+```json
+{ "message": "A new OTP has been sent to your email" }
+```
+Issues a brand-new code; `verify-otp` always checks the newest unused code,
+so any older code stops working. Unknown email → `404`. Already-verified
+account → `400`.
 
 ### `POST /ngo/login`
 ```json
 { "email": "myngo@example.com", "password": "Secret@123" }
 ```
-**Expected** — `200`, OTP emailed again:
+**Expected** — `201`, OTP emailed again (`purpose: LOGIN`):
 ```json
 { "message": "OTP sent to your email" }
 ```
-Wrong password or unverified account → `401 Unauthorized`.
+Wrong password **or unknown email** → `401` with the same
+`"Invalid email or password"` message (deliberate — it does not reveal which
+emails are registered). Correct password on an unverified account → `401`
+`"Account is not verified"`.
 
 ### `POST /ngo/verify-login-otp`
 ```json
 { "email": "myngo@example.com", "code": "119284" }
 ```
-**Expected** — `200`:
+**Expected** — `201`:
 ```json
 { "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }
 ```
+The decoded payload is `{ userId, role, iat, exp }` and the token is valid
+for 1 day (`JWT_SECRET` / `expiresIn` are set in `ngo.module.ts`).
+
+A LOGIN code only works here, and a SIGNUP code only works on
+`/ngo/verify-otp` — codes are matched per purpose. Reusing an already-used
+code → `400`.
+
 Copy `accessToken` into the `Authorization: Bearer <token>` header for every
 route below.
 
