@@ -189,7 +189,7 @@ export class AdminService {
   private async sendOtp(user: User, purpose: OtpPurpose): Promise<void> {
     const rawCode = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedCode = await bcrypt.hash(rawCode, 10);
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     const otp = this.otpRepository.create({
       codeHash: hashedCode,
@@ -214,7 +214,7 @@ export class AdminService {
   async getProfile(userId: number): Promise<Admin> {
     const admin = await this.adminRepository.findOne({
       where: { user: { id: userId } },
-      relations: { user: true }, // FIX: TypeORM 0.3.x object syntax
+      relations: { user: true },
     });
     if (!admin) throw new NotFoundException('Admin profile not found');
     return admin;
@@ -310,7 +310,7 @@ export class AdminService {
   async getCrisisById(id: number): Promise<Crisis> {
     const crisis = await this.crisisRepository.findOne({
       where: { id },
-      relations: { declaredByAdmin: true, ngos: true }, // FIX: TypeORM 0.3.x object syntax
+      relations: { declaredByAdmin: true, ngos: true },
     });
     if (!crisis) throw new NotFoundException(`Crisis with ID ${id} not found`);
     return crisis;
