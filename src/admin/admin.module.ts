@@ -1,15 +1,15 @@
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { JwtModule } from '@nestjs/jwt';
 import { MailerModule } from '@nestjs-modules/mailer';
-import { AdminController } from './admin.controller';
-import { AdminService } from './admin.service';
-import { AdminGuard } from './admin.guard';
-import { Admin } from './entities/admin.entity';
-import { Crisis } from './entities/crisis.entity';
-import { Announcement } from './entities/announcement.entity';
-import { User } from '../common/entities/user.entity';
+import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { Otp } from '../common/entities/otp.entity';
+import { User } from '../common/entities/user.entity';
+import { AdminController } from './admin.controller';
+import { AdminGuard } from './admin.guard';
+import { AdminService } from './admin.service';
+import { Admin } from './entities/admin.entity';
+import { Announcement } from './entities/announcement.entity';
+import { Crisis } from './entities/crisis.entity';
 
 @Module({
   imports: [

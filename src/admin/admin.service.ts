@@ -1,32 +1,32 @@
+import { MailerService } from '@nestjs-modules/mailer';
 import {
-  Injectable,
   BadRequestException,
   ConflictException,
-  UnauthorizedException,
+  Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like, In } from 'typeorm'; // Added 'In' for TypeORM 0.3 queries
 import { JwtService } from '@nestjs/jwt';
-import { MailerService } from '@nestjs-modules/mailer';
+import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
+import { In, Like, Repository } from 'typeorm';
 
-import { Admin } from './entities/admin.entity';
-import { Crisis } from './entities/crisis.entity';
-import { Announcement } from './entities/announcement.entity';
-import { User } from '../common/entities/user.entity';
+import { OtpPurpose, UserRole } from '../common/common.enums';
 import { Otp } from '../common/entities/otp.entity';
+import { User } from '../common/entities/user.entity';
 import { AdminStatus, CrisisStatus } from './admin.enums';
-import { UserRole, OtpPurpose } from '../common/common.enums';
+import { Admin } from './entities/admin.entity';
+import { Announcement } from './entities/announcement.entity';
+import { Crisis } from './entities/crisis.entity';
 
 import { CreateAdminDto } from './dto/admin.dto';
+import { CreateAnnouncementDto } from './dto/create-announcement.dto';
+import { CreateCrisisDto } from './dto/create-crisis.dto';
 import { LoginDto } from './dto/login.dto';
-import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { UpdateCrisisStatusDto } from './dto/update-crisis-status.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdateAdminStatusDto } from './dto/update-status.dto';
-import { CreateCrisisDto } from './dto/create-crisis.dto';
-import { UpdateCrisisStatusDto } from './dto/update-crisis-status.dto';
-import { CreateAnnouncementDto } from './dto/create-announcement.dto';
+import { VerifyOtpDto } from './dto/verify-otp.dto';
 
 @Injectable()
 export class AdminService {
@@ -47,7 +47,6 @@ export class AdminService {
     return 'Admin module is working';
   }
 
-  // --- Task 0: Profile Image Upload ---
   async uploadProfileImage(userId: number, filename?: string): Promise<object> {
     if (!filename) {
       throw new BadRequestException('Image file is required');
@@ -67,10 +66,9 @@ export class AdminService {
     };
   }
 
-  // --- Phase 4: Auth Flows ---
   async signup(dto: CreateAdminDto): Promise<object> {
     const existingUser = await this.userRepository.findOne({
-      where: { email: dto.email } as any, // Cast as any to bypass TS strictness
+      where: { email: dto.email } as any,
     });
     if (existingUser) {
       throw new ConflictException('Email already registered');
@@ -108,7 +106,6 @@ export class AdminService {
     });
     if (!user) throw new UnauthorizedException('Invalid credentials');
 
-    // Cast user as any to bypass the missing password property error
     const isPasswordValid = await bcrypt.compare(
       dto.password,
       (user as any).passwordHash,
@@ -203,7 +200,6 @@ export class AdminService {
     } as any);
     await this.otpRepository.save(otp);
 
-    // WRAP THIS IN TRY/CATCH
     try {
       await this.mailerService.sendMail({
         to: (user as any).email,
@@ -212,12 +208,9 @@ export class AdminService {
       });
     } catch (error) {
       console.error('Failed to send email:', error);
-      // We don't throw an error here, so signup can complete,
-      // but you might want to handle this differently in production.
     }
   }
 
-  // --- Phase 6/7: Profile Management ---
   async getProfile(userId: number): Promise<Admin> {
     const admin = await this.adminRepository.findOne({
       where: { user: { id: userId } },
@@ -242,7 +235,6 @@ export class AdminService {
     return this.adminRepository.save(admin);
   }
 
-  // --- User Management ---
   async getUsers(filters: {
     role?: UserRole;
     isActive?: boolean;
@@ -281,7 +273,6 @@ export class AdminService {
     return { message: 'User deactivated', id, isActive: false };
   }
 
-  // --- Phase 5 & 6/7: Crisis CRUD (Unblocks Team) ---
   async createCrisis(userId: number, dto: CreateCrisisDto): Promise<Crisis> {
     const admin = await this.getProfile(userId);
     const crisis = this.crisisRepository.create({
@@ -349,14 +340,12 @@ export class AdminService {
     return { message: `Crisis with ID ${id} deleted successfully` };
   }
 
-  // --- Phase 8: M:N Announcements ---
   async createAnnouncement(
     userId: number,
     dto: CreateAnnouncementDto,
   ): Promise<Announcement> {
     const admin = await this.getProfile(userId);
 
-    // FIX: Removed findByIds, replaced with findBy + In Operator
     const recipients = await this.userRepository.findBy({
       id: In(dto.recipientUserIds),
     });
@@ -394,7 +383,7 @@ export class AdminService {
   async getAnnouncementById(id: number): Promise<Announcement> {
     const announcement = await this.announcementRepository.findOne({
       where: { id },
-      relations: { recipients: true }, // FIX: TypeORM 0.3.x object syntax
+      relations: { recipients: true },
     });
     if (!announcement)
       throw new NotFoundException(`Announcement with ID ${id} not found`);

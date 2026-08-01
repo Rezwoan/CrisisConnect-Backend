@@ -1,50 +1,48 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Patch,
-  Delete,
   Body,
-  Param,
-  Query,
-  UseGuards,
-  UseInterceptors,
-  UploadedFile,
-  Req,
-  ParseIntPipe,
+  Controller,
+  Delete,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Put,
+  Query,
+  Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 
-import { AdminService } from './admin.service';
-import { AdminGuard } from './admin.guard';
 import { imageUploadOptions } from '../common/config/multer.config';
+import { AdminGuard } from './admin.guard';
+import { AdminService } from './admin.service';
 
 import { CreateAdminDto } from './dto/admin.dto';
+import { CreateAnnouncementDto } from './dto/create-announcement.dto';
+import { CreateCrisisDto } from './dto/create-crisis.dto';
 import { LoginDto } from './dto/login.dto';
-import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { UpdateCrisisStatusDto } from './dto/update-crisis-status.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdateAdminStatusDto } from './dto/update-status.dto';
-import { CreateCrisisDto } from './dto/create-crisis.dto';
-import { UpdateCrisisStatusDto } from './dto/update-crisis-status.dto';
-import { CreateAnnouncementDto } from './dto/create-announcement.dto';
+import { VerifyOtpDto } from './dto/verify-otp.dto';
 
 import { UserRole } from '../common/common.enums';
-import { AdminStatus, CrisisStatus, CrisisSeverity } from './admin.enums';
+import { AdminStatus, CrisisSeverity, CrisisStatus } from './admin.enums';
 
 @Controller('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
-  // Healthcheck
   @Get()
   getStatus(): string {
     return this.adminService.getStatus();
   }
 
-  // --- Auth Routes ---
   @Post('signup')
   signup(@Body() dto: CreateAdminDto) {
     return this.adminService.signup(dto);
@@ -68,7 +66,6 @@ export class AdminController {
     return this.adminService.verifyLoginOtp(dto);
   }
 
-  // --- Task 0: Profile Image ---
   @Post('profile/image')
   @UseGuards(AdminGuard)
   @UseInterceptors(FileInterceptor('image', imageUploadOptions('admin')))
@@ -79,7 +76,6 @@ export class AdminController {
     );
   }
 
-  // --- Profile Routes ---
   @Get('profile')
   @UseGuards(AdminGuard)
   getProfile(@Req() req: any) {
@@ -98,7 +94,6 @@ export class AdminController {
     return this.adminService.updateProfileStatus(req.user?.userId, dto);
   }
 
-  // --- User Management ---
   @Get('users')
   @UseGuards(AdminGuard)
   getUsers(
@@ -122,7 +117,6 @@ export class AdminController {
     return this.adminService.deactivateUser(id);
   }
 
-  // --- Phase 5 & 6/7: Crisis CRUD ---
   @Post('crisis')
   @UseGuards(AdminGuard)
   createCrisis(@Req() req: any, @Body() dto: CreateCrisisDto) {
@@ -170,7 +164,6 @@ export class AdminController {
     return this.adminService.deleteCrisis(id);
   }
 
-  // --- Phase 8: Announcements ---
   @Post('announcement')
   @UseGuards(AdminGuard)
   createAnnouncement(@Req() req: any, @Body() dto: CreateAnnouncementDto) {
