@@ -18,3 +18,5 @@ export class WorkLog {
   @CreateDateColumn()
   loggedAt!: Date;
 }
+
+

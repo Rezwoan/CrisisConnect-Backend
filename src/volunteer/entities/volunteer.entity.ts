@@ -25,6 +25,12 @@ export class Volunteer {
   @Column({ type: 'varchar', length: 40, unique: true })
   username!: string;
 
+  @Column({ type: 'varchar', length: 255, unique: true })
+  email!: string;
+
+  @Column({ type: 'varchar', length: 255 })
+  password!: string;
+
   @Column({ type: 'varchar', length: 60 })
   fullName!: string;
 
@@ -52,3 +58,5 @@ export class Volunteer {
   @JoinTable({ name: 'volunteer_skill' })
   skills!: Skill[];
 }
+
+

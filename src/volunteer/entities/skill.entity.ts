@@ -13,3 +13,5 @@ export class Skill {
   @ManyToMany(() => Volunteer, (volunteer) => volunteer.skills)
   volunteers!: Volunteer[];
 }
+
+
