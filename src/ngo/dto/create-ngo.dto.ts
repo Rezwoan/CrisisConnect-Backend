@@ -1,3 +1,5 @@
+// Body for POST /ngo/signup. class-validator checks each rule before the
+// controller runs, so the service can trust every field it receives.
 import {
   IsEmail,
   IsNotEmpty,
@@ -6,42 +8,44 @@ import {
   Length,
   Matches,
   MaxLength,
-  MinLength,
 } from 'class-validator';
 
 export class CreateNgoDto {
-  @IsEmail()
   @IsNotEmpty()
+  @IsEmail()
   email!: string;
 
-  @IsString()
   @IsNotEmpty()
-  @MinLength(6)
+  @IsString()
+  @Length(6, 50)
   @Matches(/(?=.*[A-Za-z])(?=.*\d)/, {
     message: 'Password must contain at least one letter and one number',
   })
   password!: string;
 
-  @IsString()
   @IsNotEmpty()
+  @IsString()
   @MaxLength(100)
   orgName!: string;
 
-  @IsString()
   @IsNotEmpty()
+  @IsString()
   @MaxLength(60)
   regNumber!: string;
 
-  @IsString()
   @IsNotEmpty()
+  @IsString()
   @Length(11, 11)
   phone!: string;
 
-  @IsString()
   @IsNotEmpty()
+  @IsString()
   @MaxLength(40)
   city!: string;
 
+  // @IsOptional() (from the class-validator docs) means: if this field is
+  // missing, skip the other checks. Without it a missing fullName would
+  // fail validation, and the column is nullable in the entity.
   @IsOptional()
   @IsString()
   @MaxLength(60)

@@ -12,11 +12,19 @@ import { DonationCall } from './entities/donation-call.entity';
 import { Assignment } from './entities/assignment.entity';
 import { User } from '../common/entities/user.entity';
 import { Otp } from '../common/entities/otp.entity';
+import { Crisis } from '../admin/entities/crisis.entity';
+import { Application } from '../volunteer/entities/application.entity';
 
-// User and Otp are the shared auth-core tables (owned by the repo owner),
-// registered here so they materialise in Postgres alongside everyone else's.
+// Wires the NGO feature together: which tables it can touch, how it sends
+// email, and how it signs tokens. Nest builds this once at startup and
+// injects everything listed here into the controller/service/guard.
 @Module({
   imports: [
+    // forFeature = "give this module a Repository for each of these tables".
+    // Ngo/VolunteerCall/DonationCall/Assignment are ours. User and Otp are
+    // the shared auth tables. Crisis (Admin) and Application (Volunteer)
+    // belong to other roles — registering them here is how we read/write
+    // their tables without ever editing files inside their folders.
     TypeOrmModule.forFeature([
       Ngo,
       VolunteerCall,
@@ -24,7 +32,11 @@ import { Otp } from '../common/entities/otp.entity';
       Assignment,
       User,
       Otp,
+      Crisis,
+      Application,
     ]),
+    // Gmail SMTP for the OTP/approval emails. Credentials come from .env via
+    // ConfigService — never hardcoded, and .env is gitignored.
     MailerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -40,6 +52,8 @@ import { Otp } from '../common/entities/otp.entity';
         },
       }),
     }),
+    // The signing secret and lifetime for our JWTs. The same secret signs
+    // tokens in the service and verifies them in the guard.
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -49,6 +63,7 @@ import { Otp } from '../common/entities/otp.entity';
     }),
   ],
   controllers: [NgoController],
+  // NgoGuard is a provider so Nest can inject JwtService into it.
   providers: [NgoService, NgoGuard],
 })
 export class NgoModule {}

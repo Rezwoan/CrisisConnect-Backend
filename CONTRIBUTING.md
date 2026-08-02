@@ -70,7 +70,7 @@ Manually hit your new/changed endpoints (Postman, curl, etc.) against your local
 
 Follow the conventions already established in `src/admin/` and `src/ngo/` — these are the reference implementations for the rest of the codebase:
 
-- **DTOs** (`*.dto.ts`): camelCase field names, `@IsNotEmpty()` + a type decorator (`@IsString()`, `@IsEmail()`, etc.) on every field, and a descriptive `message` on every validator.
+- **DTOs** (`*.dto.ts`): camelCase field names, `@IsNotEmpty()` (or `@IsOptional()`) + a type decorator (`@IsString()`, `@IsEmail()`, etc.) on every field, in that order. Add a descriptive `message` wherever the built-in one is unhelpful — always on `@Matches()`, whose default leaks the raw regex at the client. On plain decorators like `@IsEmail()`/`@IsString()` the built-in message is already clear, so a custom one is optional; both styles are fine, just be consistent inside your own folder. Where a column is `varchar(N)`, mirror it with `@MaxLength(N)` so an over-long value returns `400` instead of blowing up as a `500` in Postgres.
 - **Controllers** (`*.controller.ts`): thin — decorate routes, extract params, delegate to the service. Don't build response objects or business logic in the controller. Wrap 2+ `@Query`/`@Param` decorators across multiple lines (see `admin.controller.ts` / `ngo.controller.ts`).
 - **Services** (`*.service.ts`): actually use every parameter you accept — don't take a filter param and ignore it. Return a consistent envelope: `{ message, data }`, or `{ message, count, data }` for list endpoints.
 - No leftover `console.log`, commented-out dead code, or debug-only routes (e.g. a stray `/test` endpoint) in what you commit.
