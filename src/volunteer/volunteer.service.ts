@@ -16,14 +16,21 @@ import { DataSource, Repository } from 'typeorm';
 import { OtpPurpose, UserRole } from '../common/common.enums';
 import { Otp } from '../common/entities/otp.entity';
 import { User } from '../common/entities/user.entity';
-import { Assignment } from './entities/application.entity';
-import { VolunteerCall } from './entities/application.entity';
 import { Application } from './entities/application.entity';
 import { Skill } from './entities/skill.entity';
 import { Volunteer } from './entities/volunteer.entity';
 import { WorkLog } from './entities/work-log.entity';
 import { ApplicationStatus } from './volunteer.enums';
-import { ApplyTaskDto, CreateVolunteerDto, LoginDto, VerifyOtpDto , UpdateVolunteerDto ,AvailabilityDto,SkillDto,WorkLogDto} from './volunteer.dto';
+import {
+  ApplyTaskDto,
+  CreateVolunteerDto,
+  LoginDto,
+  UpdateVolunteerDto,
+  VerifyOtpDto,
+  WorkLogDto,
+} from './volunteer.dto';
+import { VolunteerCall } from '../ngo/entities/volunteer-call.entity';
+import { Assignment } from '../ngo/entities/assignment.entity';
 
 @Injectable()
 export class VolunteerService {
@@ -272,7 +279,7 @@ export class VolunteerService {
     return volunteer;
   }
 
-  async updateProfile(volunteerId: number, dto: Partial<Volunteer>) {
+  async updateProfile(volunteerId: number, dto: UpdateVolunteerDto) {
     const volunteer = await this.findVolunteerByIdentity(volunteerId);
     if (!volunteer) {
       throw new NotFoundException('Volunteer not found');
@@ -282,7 +289,6 @@ export class VolunteerService {
       fullName: dto.fullName ?? volunteer.fullName,
       phone: dto.phone ?? volunteer.phone,
       city: dto.city ?? volunteer.city,
-      profileImage: dto.profileImage ?? volunteer.profileImage,
     });
 
     return this.volunteerRepo.save(volunteer);
@@ -297,18 +303,46 @@ export class VolunteerService {
     await this.volunteerRepo.save(volunteer);
     return { message: 'Availability updated', isAvailable };
   }
+  async deleteVolunteer(volunteerId: number) {
+    const volunteer = await this.volunteerRepo.findOne({
+      where: { id: volunteerId },
+      relations: { user: true },
+    });
+
+    if (!volunteer) {
+      throw new NotFoundException('Volunteer not found');
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      const volunteerRepo = manager.getRepository(Volunteer);
+      const userRepo = manager.getRepository(User);
+      const otpRepo = manager.getRepository(Otp);
+
+      if (volunteer.user) {
+        await otpRepo.delete({ user: { id: volunteer.user.id } });
+      }
+
+      await volunteerRepo.remove(volunteer);
+
+      if (volunteer.user) {
+        await userRepo.remove(volunteer.user);
+      }
+    });
+
+    return { message: 'Volunteer deleted successfully', id: volunteerId };
+  }
 
   async searchVolunteer(city?: string, isAvailable?: boolean, skill?: string) {
     const qb = this.volunteerRepo.createQueryBuilder('volunteer').leftJoinAndSelect('volunteer.skills', 'skill');
 
     if (city) {
-      qb.andWhere('volunteer.city ILIKE :city', { city: `%${city}%` });
+      qb.andWhere('LOWER(volunteer.city) LIKE LOWER(:city)', { city: `%${city}%` });
     }
     if (isAvailable !== undefined) {
       qb.andWhere('volunteer.isAvailable = :isAvailable', { isAvailable });
     }
     if (skill) {
-      qb.andWhere('skill.name ILIKE :skill', { skill: `%${skill}%` });
+      qb.andWhere('LOWER(skill.name) LIKE LOWER(:skill)', { skill: `%${skill}%` });
     }
 
     const volunteers = await qb.getMany();
@@ -327,11 +361,20 @@ export class VolunteerService {
   }
 
   async createSkill(name: string) {
-    const existing = await this.skillRepo.findOne({ where: { name } });
+    const normalizedName = name.trim();
+    if (!normalizedName) {
+      throw new BadRequestException('Skill name is required');
+    }
+
+    const existing = await this.skillRepo
+      .createQueryBuilder('skill')
+      .where('LOWER(skill.name) = LOWER(:name)', { name: normalizedName })
+      .getOne();
     if (existing) {
       throw new ConflictException('Skill already exists');
     }
-    const skill = this.skillRepo.create({ name });
+
+    const skill = this.skillRepo.create({ name: normalizedName });
     return this.skillRepo.save(skill);
   }
 
@@ -378,7 +421,7 @@ export class VolunteerService {
     const qb = this.volunteerCallRepo.createQueryBuilder('call');
 
     if (city) {
-      qb.andWhere('call.city ILIKE :city', { city: `%${city}%` });
+      qb.andWhere('LOWER(call.city) LIKE LOWER(:city)', { city: `%${city}%` });
     }
     if (crisisId !== undefined) {
       qb.andWhere('call.crisisId = :crisisId', { crisisId });
@@ -403,7 +446,7 @@ export class VolunteerService {
     }
 
     const existing = await this.applicationRepo.findOne({
-      where: { volunteer: { id: volunteerId }, volunteerCall: { id: dto.volunteerCallId } },
+      where: { volunteer: { id: volunteer.id }, volunteerCall: { id: dto.volunteerCallId } },
     });
     if (existing) {
       throw new ConflictException('Already applied to this call');
@@ -419,7 +462,7 @@ export class VolunteerService {
     return this.applicationRepo.save(application);
   }
 
-  async getApplications(volunteerId: number, status?: string) {
+  async getApplications(volunteerId: number, status?: ApplicationStatus) {
     const volunteer = await this.findVolunteerByIdentity(volunteerId);
     if (!volunteer) {
       throw new NotFoundException('Volunteer not found');
@@ -471,7 +514,7 @@ export class VolunteerService {
     return assignments;
   }
 
-  async createWorkLog(volunteerId: number, dto: { assignmentId: number; hours: number; note: string }) {
+  async createWorkLog(volunteerId: number, dto: WorkLogDto) {
     const volunteer = await this.findVolunteerByIdentity(volunteerId);
     if (!volunteer) {
       throw new NotFoundException('Volunteer not found');
@@ -504,7 +547,7 @@ export class VolunteerService {
         .createQueryBuilder()
         .update(Volunteer)
         .set({ totalHours: () => '"totalHours" + :hours' })
-        .where('id = :volunteerId', { volunteerId, hours: dto.hours })
+        .where('id = :volunteerId', { volunteerId: volunteer.id, hours: dto.hours })
         .execute();
 
       return saved;
@@ -523,7 +566,8 @@ export class VolunteerService {
       .createQueryBuilder('workLog')
       .leftJoinAndSelect('workLog.assignment', 'assignment')
       .leftJoinAndSelect('assignment.application', 'application')
-      .where('application.volunteerId = :volunteerId', { volunteerId: volunteer.id });
+      .leftJoin('application.volunteer', 'volunteer')
+      .where('volunteer.id = :volunteerId', { volunteerId: volunteer.id });
 
     if (assignmentId !== undefined) {
       qb.andWhere('assignment.id = :assignmentId', { assignmentId });
