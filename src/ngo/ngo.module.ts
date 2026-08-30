@@ -17,7 +17,6 @@ import { Application } from '../volunteer/entities/application.entity';
 
 @Module({
   imports: [
-
     TypeOrmModule.forFeature([
       Ngo,
       VolunteerCall,

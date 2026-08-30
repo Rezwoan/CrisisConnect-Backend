@@ -29,7 +29,11 @@ export class Donation {
   @Column({ type: 'varchar', length: 200 })
   message!: string;
 
-  @Column({ type: 'enum', enum: DonationStatus, default: DonationStatus.INITIATED })
+  @Column({
+    type: 'enum',
+    enum: DonationStatus,
+    default: DonationStatus.INITIATED,
+  })
   status!: DonationStatus;
 
   @CreateDateColumn()

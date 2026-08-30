@@ -25,7 +25,11 @@ export class Application {
   @Column({ type: 'varchar', length: 300 })
   message!: string;
 
-  @Column({ type: 'enum', enum: ApplicationStatus, default: ApplicationStatus.PENDING })
+  @Column({
+    type: 'enum',
+    enum: ApplicationStatus,
+    default: ApplicationStatus.PENDING,
+  })
   status!: ApplicationStatus;
 
   @CreateDateColumn()

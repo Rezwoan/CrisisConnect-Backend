@@ -68,7 +68,7 @@ export class AdminService {
 
   async signup(dto: CreateAdminDto): Promise<object> {
     const existingUser = await this.userRepository.findOne({
-      where: { email: dto.email } as any,
+      where: { email: dto.email },
     });
     if (existingUser) {
       throw new ConflictException('Email already registered');
@@ -102,7 +102,7 @@ export class AdminService {
 
   async login(dto: LoginDto): Promise<object> {
     const user = await this.userRepository.findOne({
-      where: { email: dto.email } as any,
+      where: { email: dto.email },
     });
     if (!user) throw new UnauthorizedException('Invalid credentials');
 
@@ -125,7 +125,7 @@ export class AdminService {
 
   async verifyOtp(dto: VerifyOtpDto): Promise<object> {
     const user = await this.userRepository.findOne({
-      where: { email: dto.email } as any,
+      where: { email: dto.email },
     });
     if (!user) throw new NotFoundException('User not found');
 
@@ -134,7 +134,7 @@ export class AdminService {
         user: { id: user.id },
         purpose: OtpPurpose.SIGNUP,
         isUsed: false,
-      } as any,
+      },
       order: { createdAt: 'DESC' } as any,
     });
 
@@ -156,7 +156,7 @@ export class AdminService {
 
   async verifyLoginOtp(dto: VerifyOtpDto): Promise<object> {
     const user = await this.userRepository.findOne({
-      where: { email: dto.email } as any,
+      where: { email: dto.email },
     });
     if (!user) throw new NotFoundException('User not found');
 
@@ -165,7 +165,7 @@ export class AdminService {
         user: { id: user.id },
         purpose: OtpPurpose.LOGIN,
         isUsed: false,
-      } as any,
+      },
       order: { createdAt: 'DESC' } as any,
     });
 
