@@ -25,13 +25,6 @@ interface GuardedRequest {
   user?: JwtPayload;
 }
 
-// A Guard runs BEFORE the route handler and decides if the request may
-// continue: return true to allow it, throw to block it. Same CanActivate
-// pattern as the SessionGuard from Lecture 5.0, except we check a JWT
-// instead of a session.
-// It answers two things — is this a real token we signed (else 401), and is
-// the user an NGO (else 403) — then puts the identity on request.user so
-// the routes know who is calling without trusting the client.
 @Injectable()
 export class NgoGuard implements CanActivate {
   constructor(private readonly jwtService: JwtService) {}

@@ -15,16 +15,9 @@ import { Otp } from '../common/entities/otp.entity';
 import { Crisis } from '../admin/entities/crisis.entity';
 import { Application } from '../volunteer/entities/application.entity';
 
-// Wires the NGO feature together: which tables it can touch, how it sends
-// email, and how it signs tokens. Nest builds this once at startup and
-// injects everything listed here into the controller/service/guard.
 @Module({
   imports: [
-    // forFeature = "give this module a Repository for each of these tables".
-    // Ngo/VolunteerCall/DonationCall/Assignment are ours. User and Otp are
-    // the shared auth tables. Crisis (Admin) and Application (Volunteer)
-    // belong to other roles — registering them here is how we read/write
-    // their tables without ever editing files inside their folders.
+
     TypeOrmModule.forFeature([
       Ngo,
       VolunteerCall,
