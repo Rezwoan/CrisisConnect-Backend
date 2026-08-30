@@ -340,16 +340,22 @@ that role's details.
 
 | Role | Status |
 | --- | --- |
-| Admin | Schema complete · base route live · CRUD/auth in progress |
-| NGO | Schema complete · base route + `POST /ngo/profile/image` live (reference implementation) · remaining routes in progress |
-| Volunteer | Schema complete · base route live · CRUD/auth in progress |
-| Donor | Schema complete · base route live · CRUD/auth in progress |
+| Admin | 19/19 routes built (auth, profile, user management, crisis, announcements) — reference implementation alongside NGO |
+| NGO | 26 routes built (auth, profile, crisis participation, volunteer/donation calls, assignments) — reference implementation |
+| Volunteer | ~20/20 routes built (auth, profile, search, skills, calls, applications, assignments, work log) — carries leftover duplicate auth scaffolding under `src/volunteer/auth/` that should be removed, see `CONTRIBUTING.md` |
+| Donor | 1/19 routes built — only the base health-check route; auth, profile, crisis-follow, donations, and the payment/receipt chain are still unbuilt |
+
+Each role's own `*_API_TESTING.md` still marks most of the above as ⬜
+("planned") even where the route is actually live — the ✅/⬜ markers were
+not kept in sync with the code as each role built past its base route.
+Treat the marker legend as historical; the table above reflects the
+actual code as merged.
 
 Every role has a `profileImage` column and a `POST /<role>/profile/image`
 upload endpoint (multipart, field name `image`, jpeg/png/webp only, 2 MB
 max), saved to its own `uploads/<role>/` folder and served back at
-`/uploads/<role>/<filename>`. NGO's route is the working reference
-implementation the other three roles build theirs from.
+`/uploads/<role>/<filename>`. Admin, NGO, and Volunteer all have this
+working; Donor's is still unbuilt.
 
 ## 7. Setup
 
@@ -421,10 +427,12 @@ The API listens on `http://localhost:3000` (or whatever `PORT` you set).
 
 ## 8. API documentation
 
-Each role currently exposes a base health-check route, e.g. `GET /admin` →
+Every role exposes a base health-check route, e.g. `GET /admin` →
 `"Admin module is working"` (same shape for `/ngo`, `/volunteer`,
-`/donor`), plus NGO's working `POST /ngo/profile/image`. The full target
-route list (auth, CRUD, relationships) per the PRD is documented per role:
+`/donor`). Beyond that, Admin, NGO, and Volunteer each have their full
+planned route set built (see the Feature status table above); Donor is
+still at the health-check-only stage. The full target route list per
+role (auth, CRUD, relationships) per the PRD is documented per role:
 
 - [`src/admin/ADMIN_TASKS.md`](./src/admin/ADMIN_TASKS.md) /
   [`ADMIN_API_TESTING.md`](./src/admin/ADMIN_API_TESTING.md)
