@@ -6,7 +6,6 @@ import { AdminModule } from './admin/admin.module';
 import { NgoModule } from './ngo/ngo.module';
 import { VolunteerModule } from './volunteer/volunteer.module';
 import { DonorModule } from './donor/donor.module';
-import { AuthModule } from './volunteer/auth/auth.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
@@ -18,7 +17,6 @@ import { join } from 'path';
     NgoModule,
     VolunteerModule,
     DonorModule,
-    AuthModule,
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
