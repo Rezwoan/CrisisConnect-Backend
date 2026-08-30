@@ -25,7 +25,11 @@ export class VolunteerCall {
   @Column({ type: 'int' })
   slots!: number;
 
-  @Column({ type: 'enum', enum: VolunteerCallStatus, default: VolunteerCallStatus.OPEN })
+  @Column({
+    type: 'enum',
+    enum: VolunteerCallStatus,
+    default: VolunteerCallStatus.OPEN,
+  })
   status!: VolunteerCallStatus;
 
   @Column({ type: 'varchar', length: 40 })

@@ -59,8 +59,11 @@ uploads/volunteer/*
 !uploads/ngo/.gitkeep
 !uploads/volunteer/.gitkeep
 
-# Local engagement notes — never pushed to GitHub
+# Local working notes for Claude-assisted sessions — not team docs
 memory.md
+CODINGSTYLE.md
+VIVA_NOTES.md
+VIVA_DRILLS.md
 
 # OS and editor files
 .DS_Store
