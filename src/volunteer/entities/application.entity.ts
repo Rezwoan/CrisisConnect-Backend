@@ -10,6 +10,7 @@ import { Volunteer } from './volunteer.entity';
 import { VolunteerCall } from '../../ngo/entities/volunteer-call.entity';
 import { ApplicationStatus } from '../volunteer.enums';
 import { Assignment } from '../../ngo/entities/assignment.entity';
+//import { call } from 'assert/strict';
 
 @Entity('application')
 export class Application {
@@ -39,3 +40,5 @@ export class Application {
   @OneToOne(() => Assignment, (assignment) => assignment.application)
   assignment!: Assignment;
 }
+export { Assignment };
+export { VolunteerCall };
