@@ -29,7 +29,11 @@ export class Assignment {
   @Column({ type: 'varchar', length: 60 })
   roleTitle!: string;
 
-  @Column({ type: 'enum', enum: AssignmentStatus, default: AssignmentStatus.ACTIVE })
+  @Column({
+    type: 'enum',
+    enum: AssignmentStatus,
+    default: AssignmentStatus.ACTIVE,
+  })
   status!: AssignmentStatus;
 
   @CreateDateColumn()

@@ -33,8 +33,9 @@ export class Ngo {
   @Column({ type: 'varchar', length: 60, nullable: true })
   fullName!: string;
 
-  // bigint comes back as a string from pg
-  @Column({ type: 'bigint' })
+  // varchar, not bigint — a phone number is digits you display, not a
+  // quantity you do maths with, and bigint silently drops the leading 0.
+  @Column({ type: 'varchar', length: 11 })
   phone!: string;
 
   @Column({ type: 'varchar', length: 40 })
