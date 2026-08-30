@@ -126,7 +126,7 @@ export class VolunteerService {
       email: dto.email,
       passwordHash,
       role: UserRole.VOLUNTEER,
-      isVerified: true,
+      isVerified: false,
     });
     const savedUser = await userRepo.save(user);
 
@@ -139,25 +139,13 @@ export class VolunteerService {
       phone: dto.phone,
       city: dto.city,
     });
-    const savedVolunteer = await this.volunteerRepo.save(volunteer);
+    await this.volunteerRepo.save(volunteer);
 
-    const token = jwt.sign(
-      {
-        userId: savedUser.id,
-        role: savedUser.role,
-        volunteerId: savedVolunteer.id,
-      },
-      process.env.JWT_SECRET ?? 'dev-secret',
-      { expiresIn: '1d' },
-    );
+    const code = this.generateOtp();
+    await this.saveOtp(savedUser, OtpPurpose.SIGNUP, code);
+    await this.sendOtpEmail(dto.email, code);
 
-    return {
-      message: 'Signup successful',
-      token,
-      volunteerId: savedVolunteer.id,
-      email: dto.email,
-      username: savedVolunteer.username,
-    };
+    return { message: 'Signup successful, OTP sent to your email' };
   }
 
   async verifyOtp(dto: VerifyOtpDto) {
@@ -211,22 +199,15 @@ export class VolunteerService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const token = jwt.sign(
-      {
-        userId: volunteer.user.id,
-        role: volunteer.user.role,
-        volunteerId: volunteer.id,
-      },
-      process.env.JWT_SECRET ?? 'dev-secret',
-      { expiresIn: '1d' },
-    );
+    if (!volunteer.user.isVerified) {
+      throw new UnauthorizedException('Account is not verified');
+    }
 
-    return {
-      message: 'Login successful',
-      token,
-      volunteerId: volunteer.id,
-      email: volunteer.email,
-    };
+    const code = this.generateOtp();
+    await this.saveOtp(volunteer.user, OtpPurpose.LOGIN, code);
+    await this.sendOtpEmail(volunteer.email, code);
+
+    return { message: 'OTP sent to your email' };
   }
 
   async verifyLoginOtp(dto: VerifyOtpDto) {
