@@ -43,7 +43,11 @@ export class AdminController {
     return this.adminService.getStatus();
   }
 
+  // Admins are never self-registered — only an existing admin can create
+  // another one, so this needs a valid admin token like any other guarded
+  // route. The very first admin account is seeded directly in the database.
   @Post('signup')
+  @UseGuards(AdminGuard)
   signup(@Body() dto: CreateAdminDto) {
     return this.adminService.signup(dto);
   }

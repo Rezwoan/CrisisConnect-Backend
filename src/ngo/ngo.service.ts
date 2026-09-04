@@ -68,8 +68,7 @@ export class NgoService {
     private readonly jwtService: JwtService,
   ) {}
 
-  // Creates the user + ngo rows together, already verified — the NGO signup
-  // flow has no OTP step, so the account is usable immediately.
+  // Creates the user + ngo rows together, then emails a signup code.
   // The password is only ever stored as a bcrypt hash, never in plain text.
   async signup(dto: CreateNgoDto): Promise<object> {
     const existingUser = await this.userRepository.findOne({
@@ -86,7 +85,6 @@ export class NgoService {
         email: dto.email,
         passwordHash,
         role: UserRole.NGO,
-        isVerified: true,
       }),
     );
 
@@ -101,7 +99,9 @@ export class NgoService {
       }),
     );
 
-    return { message: 'Signup successful' };
+    await this.createAndSendOtp(user, OtpPurpose.SIGNUP);
+
+    return { message: 'Signup successful, OTP sent to your email' };
   }
 
   // Generates a fresh 6-digit code, stores only its hash, and emails the
@@ -200,7 +200,8 @@ export class NgoService {
     return { message: 'Account verified successfully' };
   }
 
-  // Password check, then issue the JWT directly — no OTP step for NGO login.
+  // Login step 1: password check, then email a LOGIN code. No token yet —
+  // that only comes after the code is confirmed (two-factor login).
   async login(dto: LoginDto): Promise<object> {
     const user = await this.userRepository.findOne({
       where: { email: dto.email },
@@ -216,12 +217,13 @@ export class NgoService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    const accessToken = await this.jwtService.signAsync({
-      userId: user.id,
-      role: user.role,
-    });
+    if (!user.isVerified) {
+      throw new UnauthorizedException('Account is not verified');
+    }
 
-    return { accessToken };
+    await this.createAndSendOtp(user, OtpPurpose.LOGIN);
+
+    return { message: 'OTP sent to your email' };
   }
 
   // Login step 2: confirms the LOGIN code and signs the JWT the guard reads.
