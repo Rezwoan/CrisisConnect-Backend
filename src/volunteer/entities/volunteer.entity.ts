@@ -25,10 +25,10 @@ export class Volunteer {
   @Column({ type: 'varchar', length: 40, unique: true })
   username!: string;
 
-  @Column({ type: 'varchar', length: 255, unique: true })
+  @Column({ type: 'varchar', length: 255, unique: true, nullable: true })
   email!: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   password!: string;
 
   @Column({ type: 'varchar', length: 60 })
