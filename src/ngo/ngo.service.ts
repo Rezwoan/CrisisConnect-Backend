@@ -7,8 +7,9 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere } from 'typeorm';
-import { MailerService } from '@nestjs-modules/mailer';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import * as nodemailer from 'nodemailer';
 import * as bcrypt from 'bcrypt';
 import { Ngo } from './entities/ngo.entity';
 import { VolunteerCall } from './entities/volunteer-call.entity';
@@ -64,9 +65,39 @@ export class NgoService {
     private readonly assignmentRepository: Repository<Assignment>,
     @InjectRepository(Application)
     private readonly applicationRepository: Repository<Application>,
-    private readonly mailerService: MailerService,
+    private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
   ) {}
+
+  // A transporter of our own, built straight from .env, instead of the
+  // injected MailerService from @nestjs-modules/mailer — that provider is
+  // registered @Global() inside the library, so every role that also calls
+  // MailerModule.forRoot() (Admin, Volunteer) collapses onto a single
+  // shared instance, and whichever one is registered first in
+  // app.module.ts wins for everyone. That silently sent NGO's emails
+  // through Admin's Gmail account instead of ours. Building our own here
+  // sidesteps that collision without touching Admin's or Volunteer's
+  // files.
+  private async sendMail(
+    to: string,
+    subject: string,
+    text: string,
+  ): Promise<void> {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: this.configService.get<string>('MAIL_USER'),
+        pass: this.configService.get<string>('MAIL_PASS'),
+      },
+    });
+
+    await transporter.sendMail({
+      from: this.configService.get<string>('MAIL_USER'),
+      to,
+      subject,
+      text,
+    });
+  }
 
   // Creates the user + ngo rows together, then emails a signup code.
   // The password is only ever stored as a bcrypt hash, never in plain text.
@@ -123,11 +154,11 @@ export class NgoService {
       }),
     );
 
-    await this.mailerService.sendMail({
-      to: user.email,
-      subject: 'Your CrisisConnect verification code',
-      text: `Your verification code is ${otpCode}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`,
-    });
+    await this.sendMail(
+      user.email,
+      'Your CrisisConnect verification code',
+      `Your verification code is ${otpCode}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`,
+    );
   }
 
   // Issues a replacement signup code. Without this an expired code would
@@ -599,11 +630,11 @@ export class NgoService {
     application.status = ApplicationStatus.APPROVED;
     await this.applicationRepository.save(application);
 
-    await this.mailerService.sendMail({
-      to: application.volunteer.user.email,
-      subject: 'Your CrisisConnect application was approved',
-      text: `Good news — ${ngo.orgName} approved your application for "${application.volunteerCall.title}".`,
-    });
+    await this.sendMail(
+      application.volunteer.user.email,
+      'Your CrisisConnect application was approved',
+      `Good news — ${ngo.orgName} approved your application for "${application.volunteerCall.title}".`,
+    );
 
     // Built by hand: the saved entity still carries the nested volunteer →
     // user row, which must never go out in a response.
