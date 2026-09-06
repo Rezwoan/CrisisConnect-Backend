@@ -101,9 +101,9 @@ export class NgoController {
     return this.ngoService.updateActiveStatus(req.user.userId, dto);
   }
 
-  // Lists all crises with optional status/city/category filters.
+  // Lists all crises with optional status/city/category filters. Open (no
+  // guard) so Server Components can call it directly for SSR.
   @Get('crisis')
-  @UseGuards(NgoGuard)
   browseCrises(@Query() query: BrowseCrisisDto) {
     return this.ngoService.browseCrises(query);
   }
