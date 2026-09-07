@@ -218,6 +218,17 @@ export class NgoController {
     return this.ngoService.updateDonationCallStatus(req.user.userId, id, dto);
   }
 
+  // Lists who donated to one of this NGO's donation calls, and how much
+  // (reads Donor's table).
+  @Get('donation-call/:id/donations')
+  @UseGuards(NgoGuard)
+  getDonations(
+    @Req() req: { user: JwtPayload },
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.ngoService.getDonations(req.user.userId, id);
+  }
+
   // Lists who applied to one of this NGO's calls (reads Volunteer's table).
   @Get('volunteer-call/:id/applicants')
   @UseGuards(NgoGuard)

@@ -17,6 +17,7 @@ import { DonationCall } from './entities/donation-call.entity';
 import { Assignment } from './entities/assignment.entity';
 import { Application } from '../volunteer/entities/application.entity';
 import { ApplicationStatus } from '../volunteer/volunteer.enums';
+import { Donation } from '../donor/entities/donation.entity';
 import { AssignmentStatus } from './ngo.enums';
 import { User } from '../common/entities/user.entity';
 import { Otp } from '../common/entities/otp.entity';
@@ -65,6 +66,8 @@ export class NgoService {
     private readonly assignmentRepository: Repository<Assignment>,
     @InjectRepository(Application)
     private readonly applicationRepository: Repository<Application>,
+    @InjectRepository(Donation)
+    private readonly donationRepository: Repository<Donation>,
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
   ) {}
@@ -558,6 +561,28 @@ export class NgoService {
     call.status = dto.status;
 
     return this.donationCallRepository.save(call);
+  }
+
+  // Who donated to one of our calls, and how much. Reads the Donor-owned
+  // donation table through a repository registered in our own module —
+  // same pattern as getApplicants below for Volunteer's Application table.
+  async getDonations(
+    userId: number,
+    donationCallId: number,
+  ): Promise<Donation[]> {
+    const ngo = await this.getProfile(userId);
+    const call = await this.donationCallRepository.findOne({
+      where: { id: donationCallId, ngo: { id: ngo.id } },
+    });
+    if (!call) {
+      throw new NotFoundException('Donation call not found');
+    }
+
+    // donor only — never donor.user, which holds the password hash.
+    return this.donationRepository.find({
+      where: { donationCall: { id: donationCallId } },
+      relations: { donor: true },
+    });
   }
 
   // Who applied to one of our calls. Reads the Volunteer-owned application

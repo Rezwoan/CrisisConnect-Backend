@@ -13,6 +13,7 @@ import { User } from '../common/entities/user.entity';
 import { Otp } from '../common/entities/otp.entity';
 import { Crisis } from '../admin/entities/crisis.entity';
 import { Application } from '../volunteer/entities/application.entity';
+import { Donation } from '../donor/entities/donation.entity';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { Application } from '../volunteer/entities/application.entity';
       Otp,
       Crisis,
       Application,
+      Donation,
     ]),
     // The signing secret and lifetime for our JWTs. The same secret signs
     // tokens in the service and verifies them in the guard.
